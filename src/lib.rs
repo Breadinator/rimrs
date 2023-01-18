@@ -12,6 +12,8 @@ use eframe::{
 
 pub mod panels;
 pub mod helpers;
+mod mods; // kinda confusing name lol
+pub use mods::*;
 
 #[derive(Default)]
 pub struct RimRs;
