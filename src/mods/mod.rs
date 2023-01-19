@@ -20,6 +20,8 @@ pub use dependency::Dependency;
 mod mod_list;
 pub use mod_list::*;
 
+/// Not the most efficient way to do this. I couldn't get an XML parsing library to work.
+/// Eventually should change to parsing the files more efficiently.
 mod regex;
 
 pub struct Mod {}

@@ -3,7 +3,10 @@ use std::{
         HashMap,
         HashSet,
     },
-    path::Path,
+    path::{
+        Path,
+        PathBuf,
+    },
     fs,
 };
 #[allow(clippy::wildcard_imports)]
@@ -11,9 +14,12 @@ use crate::mods::{Dependency, regex::*};
 
 /// The mod metadata contained in its About.xml file.
 /// See [`https://www.rimworldwiki.com/wiki/About.xml`].
-#[derive(Debug, Clone, Default)]
 #[allow(non_snake_case)]
+#[non_exhaustive]
+#[derive(Debug, Clone, Default)]
 pub struct ModMetaData {
+    pub path: Option<PathBuf>,
+
     // info
     pub name: Option<String>,
     pub author: Option<String>,
@@ -42,11 +48,16 @@ pub struct ModMetaData {
 }
 
 impl ModMetaData {
-    #[allow(clippy::missing_errors_doc)] // temp
-    pub fn read<P: AsRef<Path> + Clone>(path: P) -> anyhow::Result<Self> {
-        let text = String::from_utf8(fs::read(path)?)?;
+    /// Reads and parses given `About.xml` file path into [`ModMetaData`]
+    ///
+    /// # Errors
+    /// * [`std::io::Error`]: if [`fs::read`] fails
+    pub fn read<P: AsRef<Path> + Clone>(path: P) -> Result<Self, std::io::Error> {
+        let text_as_u8 = fs::read(path.clone())?;
+        let text = String::from_utf8_lossy(&text_as_u8);
 
         Ok(Self {
+            path: Some(PathBuf::from(path.as_ref())),
             name: parse_name(&text).map(String::from),
             author: parse_author(&text).map(String::from),
             authors: parse_authors(&text).map(|authors| authors.into_iter().map(String::from).collect()),

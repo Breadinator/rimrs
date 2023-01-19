@@ -62,7 +62,7 @@ pub fn parse_url(text: &str) -> Option<&str> {
 }
 
 // packageId
-static PACKAGEID_MATCHER: Lazy<Regex> = Lazy::new(|| Regex::new(r#"<packageId>([\w\W]*)</packageId>"#).unwrap());
+static PACKAGEID_MATCHER: Lazy<Regex> = Lazy::new(|| Regex::new(r#"<packageId>([^<]*)</packageId>"#).unwrap());
 pub fn parse_packageId(text: &str) -> Option<&str> {
     parse_first(text, &PACKAGEID_MATCHER)
 }
