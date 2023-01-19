@@ -1487,7 +1487,7 @@ checksum = "194d8e591e405d1eecf28819740abed6d719d1a2db87fc0bcdedee9a26d55560"
 
 [[package]]
 name = "rimrs"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "anyhow",
  "eframe",

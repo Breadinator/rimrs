@@ -1,11 +1,11 @@
-use std::collections::{HashMap, LinkedList};
+use std::collections::HashMap;
 use crate::ModMetaData;
 
 #[non_exhaustive]
 #[derive(Debug, Clone, Default)]
 pub struct ModList {
     pub mods: HashMap<String, ModMetaData>,
-    pub order: LinkedList<String>,
+    pub order: Vec<String>,
 }
 
 impl<I: IntoIterator<Item=ModMetaData>> From<I> for ModList {
