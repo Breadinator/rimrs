@@ -1,5 +1,8 @@
 use std::{
-    collections::HashMap,
+    collections::{
+        HashMap,
+        HashSet,
+    },
     path::Path,
     fs,
 };
@@ -17,25 +20,25 @@ pub struct ModMetaData {
     pub authors: Option<Vec<String>>,
     pub url: Option<String>, // nothing forcing it to be valid
     pub packageId: Option<String>,
-    pub supportedVersions: Option<Vec<String>>,
+    pub supportedVersions: Option<HashSet<String>>,
     pub description: Option<String>,
     pub descriptionsByVersion: Option<HashMap<String, String>>,
 
     // dependencies
-    pub modDependencies: Option<Vec<Dependency>>,
-    pub modDependenciesByVersion: Option<HashMap<String, Vec<Dependency>>>,
+    pub modDependencies: Option<HashSet<Dependency>>,
+    pub modDependenciesByVersion: Option<HashMap<String, HashSet<Dependency>>>,
 
     // load order
-    pub loadAfter: Option<Vec<String>>,
-    pub loadAfterByVersion: Option<HashMap<String, Vec<String>>>,
-    pub forceLoadAfter: Option<Vec<String>>,
-    pub loadBefore: Option<Vec<String>>,
-    pub loadBeforeByVersion: Option<HashMap<String, Vec<String>>>,
-    pub forceLoadBefore: Option<Vec<String>>,
+    pub loadAfter: Option<HashSet<String>>,
+    pub loadAfterByVersion: Option<HashMap<String, HashSet<String>>>,
+    pub forceLoadAfter: Option<HashSet<String>>,
+    pub loadBefore: Option<HashSet<String>>,
+    pub loadBeforeByVersion: Option<HashMap<String, HashSet<String>>>,
+    pub forceLoadBefore: Option<HashSet<String>>,
 
     // incompat
-    pub incompatibleWith: Option<Vec<String>>,
-    pub incompatibleWithByVersion: Option<HashMap<String, Vec<String>>>,
+    pub incompatibleWith: Option<HashSet<String>>,
+    pub incompatibleWithByVersion: Option<HashMap<String, HashSet<String>>>,
 }
 
 impl ModMetaData {
@@ -49,21 +52,21 @@ impl ModMetaData {
             authors: parse_authors(&text).map(|authors| authors.into_iter().map(String::from).collect()),
             url: parse_url(&text).map(String::from),
             packageId: parse_packageId(&text).map(String::from),
-            supportedVersions: parse_supportedVersions(&text).map(|versions| versions.into_iter().map(String::from).collect()),
+            supportedVersions: parse_supportedVersions(&text),
             description: parse_description(&text).map(String::from),
             descriptionsByVersion: None,
 
-            modDependencies: None,
+            modDependencies: parse_modDependencies(&text),
             modDependenciesByVersion: None,
 
-            loadAfter: parse_loadAfter(&text).map(|ids| ids.into_iter().map(String::from).collect()),
+            loadAfter: parse_loadAfter(&text),
             loadAfterByVersion: None,
-            forceLoadAfter: parse_forceLoadAfter(&text).map(|ids| ids.into_iter().map(String::from).collect()),
-            loadBefore: parse_loadBefore(&text).map(|ids| ids.into_iter().map(String::from).collect()),
+            forceLoadAfter: parse_forceLoadAfter(&text),
+            loadBefore: parse_loadBefore(&text),
             loadBeforeByVersion: None,
-            forceLoadBefore: parse_forceLoadBefore(&text).map(|ids| ids.into_iter().map(String::from).collect()),
+            forceLoadBefore: parse_forceLoadBefore(&text),
 
-            incompatibleWith: parse_incompatibleWith(&text).map(|ids| ids.into_iter().map(String::from).collect()),
+            incompatibleWith: parse_incompatibleWith(&text),
             incompatibleWithByVersion: None,
         })
     }
