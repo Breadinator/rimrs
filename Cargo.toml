@@ -20,4 +20,5 @@ open = "3.2"
 regex = "1.7.1"
 serde = { version = "1.0.152", features = ["derive"] }
 serde_ini = "0.2.0"
+xml-rs = "0.8.4"
 
