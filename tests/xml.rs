@@ -1,14 +1,14 @@
 use rimrs::xml::*;
 use std::{
-    fs::File,
+    fs,
     path::PathBuf,
 };
 
 #[test]
 fn test_parse_about() {
     let path = PathBuf::from(r#"D:\Program Files\steam\steamapps\workshop\content\294100\2842502659\About\About.xml"#);
-    let file = File::open(path).unwrap();
-    let mmd = parse_about(file).unwrap();
+    let file = fs::read(path).unwrap();
+    let mmd = parse_about(&file).unwrap();
 
     assert_eq!(mmd.name.unwrap(), String::from("Vanilla Psycasts Expanded"));
     assert!(mmd.description.is_some());

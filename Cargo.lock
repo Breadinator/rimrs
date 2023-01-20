@@ -1487,7 +1487,7 @@ checksum = "194d8e591e405d1eecf28819740abed6d719d1a2db87fc0bcdedee9a26d55560"
 
 [[package]]
 name = "rimrs"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "anyhow",
  "eframe",
@@ -1496,7 +1496,6 @@ dependencies = [
  "log",
  "once_cell",
  "open",
- "regex",
  "serde",
  "serde_ini",
  "xml-rs",

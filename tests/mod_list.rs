@@ -6,6 +6,7 @@ fn load_steam_mods() {
     let paths: Vec<PathBuf> = vec![PathBuf::from(r#"D:\Program Files\steam\steamapps\workshop\content\294100"#)];
     let mods = ModList::from_dirs(paths).unwrap();
     assert_ne!(mods.mods.len(), 0);
+
     assert_eq!(mods.mods.get("UnlimitedHugs.AllowTool").unwrap().author, Some(String::from("UnlimitedHugs")));
 
     let la = mods.mods.get("Mlie.TabSorting").unwrap().loadAfter.clone().unwrap();

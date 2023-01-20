@@ -3,7 +3,6 @@ use crate::mods::{
     Dependency,
 };
 use std::{
-    io::Read,
     collections::HashSet,
     convert::AsRef,
 };
@@ -20,8 +19,13 @@ use xml::{
 ///
 /// # Errors
 /// * [`xml::reader::Error`]: if it fails to parse an [`XmlEvent`]
-pub fn parse_about(reader: impl Read) -> Result<ModMetaData, xml::reader::Error> {
-    let reader = EventReader::new(reader);
+pub fn parse_about(reader: &[u8]) -> Result<ModMetaData, xml::reader::Error> {
+    // To get rid of BOM <https://en.wikipedia.org/wiki/Byte_order_mark>, which xml-rs doesn't allow
+    let reader = if reader[0..3] == [239, 187, 191] {
+        EventReader::new(&reader[3..])
+    } else {
+        EventReader::new(reader)
+    };
 
     let mut mmd = ModMetaData::default();
     let mut xml_path = Vec::new();

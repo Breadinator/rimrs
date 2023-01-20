@@ -10,7 +10,10 @@ use std::{
     fs,
 };
 #[allow(clippy::wildcard_imports)]
-use crate::mods::{Dependency, regex::*};
+use crate::{
+    mods::Dependency,
+    xml::parse_about,
+};
 
 /// The mod metadata contained in its About.xml file.
 /// See [`https://www.rimworldwiki.com/wiki/About.xml`].
@@ -51,35 +54,12 @@ impl ModMetaData {
     /// Reads and parses given `About.xml` file path into [`ModMetaData`]
     ///
     /// # Errors
-    /// * [`std::io::Error`]: if [`fs::read`] fails
-    pub fn read<P: AsRef<Path> + Clone>(path: P) -> Result<Self, std::io::Error> {
-        let text_as_u8 = fs::read(path.clone())?;
-        let text = String::from_utf8_lossy(&text_as_u8);
-
-        Ok(Self {
-            path: Some(PathBuf::from(path.as_ref())),
-            name: parse_name(&text).map(String::from),
-            author: parse_author(&text).map(String::from),
-            authors: parse_authors(&text).map(|authors| authors.into_iter().map(String::from).collect()),
-            url: parse_url(&text).map(String::from),
-            packageId: parse_packageId(&text).map(String::from),
-            supportedVersions: parse_supportedVersions(&text),
-            description: parse_description(&text).map(String::from),
-            descriptionsByVersion: None,
-
-            modDependencies: parse_modDependencies(&text),
-            modDependenciesByVersion: None,
-
-            loadAfter: parse_loadAfter(&text),
-            loadAfterByVersion: None,
-            forceLoadAfter: parse_forceLoadAfter(&text),
-            loadBefore: parse_loadBefore(&text),
-            loadBeforeByVersion: None,
-            forceLoadBefore: parse_forceLoadBefore(&text),
-
-            incompatibleWith: parse_incompatibleWith(&text),
-            incompatibleWithByVersion: None,
-        })
+    /// * [`std::io::Error`]: if it fails to read the file at the given path
+    /// * [`xml::reader::Error`]: if it tries to parse invalid XML
+    pub fn read<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
+        let file = fs::read(path)?;
+        parse_about(&file)
+            .map_err(Into::into)
     }
 }
 
