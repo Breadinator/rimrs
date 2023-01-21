@@ -5,6 +5,7 @@ use crate::helpers::{
 };
 use std::path::PathBuf;
 use eframe::egui::{
+    Widget,
     Ui,
     Response,
 };
@@ -14,41 +15,58 @@ use egui_extras::{
     TableRow,
 };
 
-pub fn paths(ui: &mut Ui) {
-    match RimPyConfig::from_file() {
-        Ok(mut conf) => {
-            build_table(ui, &mut conf);
-            /*ui.columns(3, |columns| {
-                buttons_column(&mut columns[0], &mut conf);
-                paths_column(&mut columns[1], &mut conf);
-            });*/
+#[derive(Debug, Clone, Default)]
+pub struct PathsPanel {
+    rimpy_config: Option<RimPyConfig>,
+}
+
+impl PathsPanel {
+    fn read_rimpy_config_if_uncached(&mut self) -> anyhow::Result<()> {
+        if self.rimpy_config.is_some() {
+            return Ok(());
         }
-        Err(e) => {
-            ui.label("An error occurred reading the RimPy config file");
-            ui.label(format!("{e}"));
-        }
+        self.rimpy_config = Some(RimPyConfig::from_file()?);
+        Ok(())
+    }
+
+    fn build_table(ui: &mut Ui, conf: &mut RimPyConfig) -> Response {
+        ui.group(|ui| {
+            TableBuilder::new(ui)
+                .column(Column::auto())
+                .column(Column::remainder())
+                .column(Column::auto())
+                .body(|mut body| {
+                    macro_rules! r {
+                        ($func:ident) => {
+                            body.row(24.0, |mut row| $func(&mut row, conf))
+                        }
+                    }
+
+                    r!(row_1);
+                    r!(row_2);
+                    r!(row_3);
+                    r!(row_4);
+                    r!(row_5);
+                });
+        }).response
     }
 }
 
-fn build_table(ui: &mut Ui, conf: &mut RimPyConfig) {
+impl Widget for &mut PathsPanel {
+    fn ui(self, ui: &mut Ui) -> Response {
+        if let Err(e) = self.read_rimpy_config_if_uncached() {
+            return ui.label(format!("An error occurred: {e}"));
+        }
 
-    TableBuilder::new(ui)
-        .column(Column::auto())
-        .column(Column::remainder())
-        .column(Column::auto())
-        .body(|mut body| {
-            macro_rules! r {
-                ($func:ident) => {
-                    body.row(24.0, |mut row| $func(&mut row, conf))
-                }
-            }
-
-            r!(row_1);
-            r!(row_2);
-            r!(row_3);
-            r!(row_4);
-            r!(row_5);
-        });
+        match self.rimpy_config.as_mut() {
+            Some(rimpy_config) => PathsPanel::build_table(ui, rimpy_config),
+            None => {
+                ui.group(|ui| {
+                    ui.label("An error occurred when reading the RimPy config file!");
+                }).response
+            },
+        }
+    }
 }
 
 fn row_1(row: &mut TableRow, _conf: &mut RimPyConfig) {

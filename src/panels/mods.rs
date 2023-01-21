@@ -1,6 +1,26 @@
-use eframe::egui::Ui;
+use eframe::egui::{
+    Ui,
+    Widget,
+};
+use crate::{
+    ModList,
+    panels::ModListing,
+};
 
-pub fn mods(ui: &mut Ui) {
-    ui.label("Mods panel");
+#[allow(dead_code)]
+#[derive(Debug, Clone, Default)]
+pub struct ModsPanel {
+    pub mmd: ModList,
+    inactive: ModListing,
+    active: ModListing,
+}
+
+impl Widget for &mut ModsPanel {
+    fn ui(self, ui: &mut Ui) -> eframe::egui::Response {
+        let group = ui.group(|ui| {
+            ui.label("Mods panel");
+        });
+        group.response
+    }
 }
 

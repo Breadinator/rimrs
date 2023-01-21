@@ -4,11 +4,7 @@ use std::{
     collections::HashMap,
     fs::File,
 };
-use once_cell::sync::OnceCell;
-use anyhow::Result;
 use serde::{Serialize, Deserialize};
-
-static CACHED_CONFIG_DIR: OnceCell<PathBuf> = OnceCell::new();
 
 /// Gets the `RimPy` config directory.
 /// Its main config file is in `config.ini`, and mod lists are in `ModLists/`
@@ -16,15 +12,7 @@ static CACHED_CONFIG_DIR: OnceCell<PathBuf> = OnceCell::new();
 /// # Errors
 /// See [`env::var`]
 pub fn get_config_dir() -> Result<PathBuf, VarError> {
-    if let Some(cached_config_dir) = CACHED_CONFIG_DIR.get() {
-        Ok(cached_config_dir.clone())
-    } else {
-        let path = get_config_dir_from_env()?;
-        if CACHED_CONFIG_DIR.set(path.clone()).is_err() {
-            log::error!("tried to set internal config dir cache, `CACHED_CONFIG_DIR`, when it was already set");
-        }
-        Ok(path)
-    }
+    get_config_dir_from_env()
 }
 
 #[cfg(target_os="windows")]
@@ -77,14 +65,12 @@ impl RimPyConfig {
     /// * [`std::env::VarError`]: If env var, "APPDATA", can't be read. See [`env::var`].
     /// * [`std::io::Error`]: If it can't open `config.ini` in the config dir.
     /// * [`serde_ini::de::Error`]: If it can't parse that file into a [`RimPyConfig`].
-    pub fn from_file() -> Result<Self> {
+    pub fn from_file() -> anyhow::Result<Self> {
         let mut conf_dir = get_config_dir()?;
         conf_dir.push("config.ini");
         let file = File::open(conf_dir)?;
         serde_ini::from_read(file)
             .map_err(std::convert::Into::into)
     }
-
-
 }
 
