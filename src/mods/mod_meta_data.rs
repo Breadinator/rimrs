@@ -12,7 +12,10 @@ use std::{
 #[allow(clippy::wildcard_imports)]
 use crate::{
     mods::Dependency,
-    xml::parse_about,
+    serialization::{
+        parse_about,
+        ParseFileError,
+    },
 };
 
 /// The mod metadata contained in its About.xml file.
@@ -56,7 +59,7 @@ impl ModMetaData {
     /// # Errors
     /// * [`std::io::Error`]: if it fails to read the file at the given path
     /// * [`xml::reader::Error`]: if it tries to parse invalid XML
-    pub fn read<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
+    pub fn read<P: AsRef<Path>>(path: P) -> Result<Self, ParseFileError> {
         let file = fs::read(path)?;
         parse_about(&file)
             .map_err(Into::into)

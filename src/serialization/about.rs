@@ -1,6 +1,9 @@
-use crate::mods::{
-    ModMetaData,
-    Dependency,
+use crate::{
+    mods::{
+        ModMetaData,
+        Dependency,
+    },
+    serialization::strip_bom,
 };
 use std::{
     collections::HashSet,
@@ -14,18 +17,16 @@ use xml::{
     name::OwnedName,
 };
 
-#[allow(clippy::module_name_repetitions)]
 /// Parses the About.xml file from its reader.
 ///
 /// # Errors
 /// * [`xml::reader::Error`]: if it fails to parse an [`XmlEvent`]
-pub fn parse_about(reader: &[u8]) -> Result<ModMetaData, xml::reader::Error> {
-    // To get rid of BOM <https://en.wikipedia.org/wiki/Byte_order_mark>, which xml-rs doesn't allow
-    let reader = if reader[0..3] == [239, 187, 191] {
-        EventReader::new(&reader[3..])
-    } else {
-        EventReader::new(reader)
-    };
+///
+/// # Panics
+/// * If `bytes.len() < 3`. See [`strip_bom`].
+#[allow(clippy::module_name_repetitions)]
+pub fn parse_about(bytes: &[u8]) -> Result<ModMetaData, xml::reader::Error> {
+    let reader = EventReader::new(strip_bom(bytes));
 
     let mut mmd = ModMetaData::default();
     let mut xml_path = Vec::new();
@@ -33,7 +34,7 @@ pub fn parse_about(reader: &[u8]) -> Result<ModMetaData, xml::reader::Error> {
 
     for event in reader {
         match event? {
-            XmlEvent::StartElement { name, ..} => { xml_path.push(name.local_name); }
+            XmlEvent::StartElement { name, .. } => { xml_path.push(name.local_name); }
             XmlEvent::EndElement { name } => { end_element(&mut xml_path, &name, &mut mem); }
             XmlEvent::Characters(text) => { add_data_to_mmd(&mut mmd, &xml_path, text, &mut mem); }
             XmlEvent::EndDocument => break,

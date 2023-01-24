@@ -13,7 +13,7 @@ use eframe::{
 // pub mods
 pub mod panels;
 pub mod helpers;
-pub mod xml;
+pub mod serialization;
 
 // mod forward reexports
 mod mods;
@@ -21,7 +21,7 @@ pub use mods::*;
 
 // local imports
 use panels::panel_using_widget;
-use helpers::RimPyConfig;
+use serialization::RimPyConfig;
 
 #[derive(Debug)]
 pub struct RimRs {

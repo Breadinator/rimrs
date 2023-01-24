@@ -1,7 +1,9 @@
-use crate::helpers::{
-    RimPyConfig,
-    LogIfErr,
-    ToStringOrEmpty,
+use crate::{
+    helpers::traits::*,
+    serialization::{
+        RimPyConfig,
+        ReadRimPyConfigError,
+    },
 };
 use std::path::PathBuf;
 use eframe::egui::{
@@ -21,7 +23,7 @@ pub struct PathsPanel {
 }
 
 impl PathsPanel {
-    fn read_rimpy_config_if_uncached(&mut self) -> anyhow::Result<()> {
+    fn read_rimpy_config_if_uncached(&mut self) -> Result<(), ReadRimPyConfigError> {
         if self.rimpy_config.is_some() {
             return Ok(());
         }
@@ -55,7 +57,7 @@ impl PathsPanel {
 impl Widget for &mut PathsPanel {
     fn ui(self, ui: &mut Ui) -> Response {
         if let Err(e) = self.read_rimpy_config_if_uncached() {
-            return ui.label(format!("An error occurred: {e}"));
+            return ui.label(format!("An error occurred: {e:?}"));
         }
 
         match self.rimpy_config.as_mut() {
@@ -117,7 +119,7 @@ fn row_5(row: &mut TableRow, conf: &mut RimPyConfig) {
 pub fn open_rimpy_button(ui: &mut Ui) {
     let settings_btn = ui.button("Settings");
     if settings_btn.clicked() {
-        crate::helpers::get_config_dir().map(open::that)
+        crate::helpers::config::get_config_dir().map(open::that)
             .log_if_err();
     }
 }

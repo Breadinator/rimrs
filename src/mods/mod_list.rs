@@ -8,7 +8,6 @@ use std::{
     },
 };
 use crate::ModMetaData;
-use anyhow::Result;
 
 #[non_exhaustive]
 #[derive(Debug, Clone, Default)]

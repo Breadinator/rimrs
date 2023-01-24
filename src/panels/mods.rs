@@ -18,7 +18,8 @@ pub struct ModsPanel {
 impl Widget for &mut ModsPanel {
     fn ui(self, ui: &mut Ui) -> eframe::egui::Response {
         let group = ui.group(|ui| {
-            ui.label("Mods panel");
+            ui.add(&self.inactive);
+            // ui.label("Mods panel");
         });
         group.response
     }
