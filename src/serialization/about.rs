@@ -3,7 +3,7 @@ use crate::{
         ModMetaData,
         Dependency,
     },
-    serialization::strip_bom,
+    helpers::strip_bom,
 };
 use std::{
     collections::HashSet,

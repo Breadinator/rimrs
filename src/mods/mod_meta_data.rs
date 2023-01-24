@@ -13,8 +13,8 @@ use std::{
 use crate::{
     mods::Dependency,
     serialization::{
-        parse_about,
-        ParseFileError,
+        ParseXMLError,
+        about::parse_about,
     },
 };
 
@@ -59,7 +59,7 @@ impl ModMetaData {
     /// # Errors
     /// * [`std::io::Error`]: if it fails to read the file at the given path
     /// * [`xml::reader::Error`]: if it tries to parse invalid XML
-    pub fn read<P: AsRef<Path>>(path: P) -> Result<Self, ParseFileError> {
+    pub fn read<P: AsRef<Path>>(path: P) -> Result<Self, ParseXMLError> {
         let file = fs::read(path)?;
         parse_about(&file)
             .map_err(Into::into)

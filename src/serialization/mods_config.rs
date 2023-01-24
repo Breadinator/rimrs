@@ -1,4 +1,4 @@
-use crate::serialization::strip_bom;
+use crate::helpers::{strip_bom, fold_lis};
 use std::path::Path;
 use serde::{Serialize, Deserialize};
 use xml::reader::{
@@ -75,7 +75,7 @@ impl TryFrom<&[u8]> for ModsConfig {
 }
 
 impl TryFrom<&Path> for ModsConfig {
-    type Error = super::ParseFileError;
+    type Error = super::ParseXMLError;
 
     /// Tries to read a file, then parse its XML as [`ModsConfig`].
     ///
@@ -98,12 +98,12 @@ impl From<ModsConfig> for String {
         }
         if !mods_config.activeMods.is_empty() {
             out.push_str("    <activeMods>\n");
-            out.push_str(&super::fold_lis(mods_config.activeMods, 2));
+            out.push_str(&fold_lis(mods_config.activeMods, 2));
             out.push_str("    </activeMods>\n");
         }
         if !mods_config.knownExpansions.is_empty() {
             out.push_str("    <knownExpansions>\n");
-            out.push_str(&super::fold_lis(mods_config.knownExpansions, 2));
+            out.push_str(&fold_lis(mods_config.knownExpansions, 2));
             out.push_str("    </knownExpansions>\n");
         }
 

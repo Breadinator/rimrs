@@ -21,7 +21,7 @@ pub use mods::*;
 
 // local imports
 use panels::panel_using_widget;
-use serialization::RimPyConfig;
+use serialization::rimpy_config::RimPyConfig;
 
 #[derive(Debug)]
 pub struct RimRs {
