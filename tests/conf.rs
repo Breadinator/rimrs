@@ -1,4 +1,4 @@
-use rimrs::serialization::*;
+use rimrs::serialization::rimpy_config::*;
 
 #[test]
 fn get_local_mods_location() -> Result<(), ReadRimPyConfigError> {

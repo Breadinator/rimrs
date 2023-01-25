@@ -1,6 +1,8 @@
 pub mod about;
 pub mod mods_config;
 pub mod rimpy_config;
+
+/// Not actually used lol
 pub mod ini;
 
 #[derive(Debug)]

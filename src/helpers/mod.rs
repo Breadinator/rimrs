@@ -1,3 +1,5 @@
+use std::io::Read;
+
 pub mod config;
 pub mod traits;
 
@@ -25,5 +27,54 @@ pub fn fold_lis(items: Vec<String>, indenting: usize) -> String {
         acc.push_str(&format!("{indent}<li>{item}</li>\n"));
         acc
     })
+}
+
+/// Reads a line from a reader.
+///
+/// # Errors
+/// If `reader.read(buf)` returns `Err`
+pub fn read_line(reader: &mut impl Read, buf: &mut [u8;1]) -> Result<Option<String>, ReadLineError> {
+    let mut line: Vec<u8> = Vec::new();
+
+    loop {
+        let n = reader.read(&mut buf[..])?;
+        if n == 0 || buf[0] == b'\n' {
+            break;
+        }
+        line.push(buf[0]);
+    }
+
+    if line.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(String::from_utf8(line)?))
+    }
+}
+
+#[derive(Debug)]
+pub enum ReadLineError {
+    IOError(std::io::Error),
+    FromUtf8Error(std::string::FromUtf8Error),
+}
+
+impl From<std::io::Error> for ReadLineError {
+    fn from(err: std::io::Error) -> Self {
+        Self::IOError(err)
+    }
+}
+
+impl From<std::string::FromUtf8Error> for ReadLineError {
+    fn from(err: std::string::FromUtf8Error) -> Self {
+        Self::FromUtf8Error(err)
+    }
+}
+
+impl std::fmt::Display for ReadLineError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            Self::IOError(err)       => err.fmt(f),
+            Self::FromUtf8Error(err) => err.fmt(f),
+        }
+    }
 }
 

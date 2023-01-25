@@ -1,6 +1,5 @@
 use crate::helpers::{strip_bom, fold_lis};
 use std::path::Path;
-use serde::{Serialize, Deserialize};
 use xml::reader::{
     EventReader,
     XmlEvent,
@@ -12,7 +11,7 @@ use xml::reader::{
 /// Fields directly represent the XML tag names, so aren't snakecase.
 /// The `ModsConfig.xml` file uses `<li>` tags for elements of lists, represented in this struct as [`Vec`]s.
 #[allow(non_snake_case)]
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default)]
 pub struct ModsConfig {
     /// RimWorld version.
     /// E.g. `1.4.3613 rev641`

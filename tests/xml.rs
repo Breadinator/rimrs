@@ -1,4 +1,7 @@
-use rimrs::serialization::*;
+use rimrs::serialization::{
+    about::*,
+    mods_config::*,
+};
 use std::{
     env,
     fs,
