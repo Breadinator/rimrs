@@ -8,13 +8,13 @@ pub trait LogIfErr {
     fn log_if_err(self) -> Option<Self::OkValue>;
 }
 
-impl<T, E: std::fmt::Display> LogIfErr for Result<T, E> {
+impl<T, E: std::fmt::Debug> LogIfErr for Result<T, E> {
     type OkValue = T;
     fn log_if_err(self) -> Option<T> {
         match self {
             Ok(val) => Some(val),
             Err(e) => {
-                log::error!("{e}");
+                log::error!("{e:?}");
                 None
             }
         }

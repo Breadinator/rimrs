@@ -31,7 +31,7 @@ impl ModList {
     /// Looks for `*/About/About.xml` files in the given dirs, then parses them.
     ///
     /// # Errors
-    /// *
+    /// * [`fs::read_dir`] fails on one of the given dirs
     pub fn from_dirs(dirs: impl IntoIterator<Item = PathBuf>) -> Result<Self, io::Error> {
         let mut paths = Vec::new();
         for dir in dirs {

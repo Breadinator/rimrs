@@ -3,15 +3,15 @@ use std::{
     fs::File,
     io::Read,
 };
-use crate::helpers::{read_line, traits::LogIfErr};
+use crate::helpers::{read_line, traits::LogIfErr, config::get_config_ini_path};
 
-pub struct INIReader {
-    reader: Box<dyn Read>,
+pub struct INIReader<'a> {
+    reader: Box<dyn Read + 'a>,
     section: Option<String>,
     buf: [u8; 1],
 }
 
-impl INIReader {
+impl INIReader<'_> {
     /// Starts an [`INIReader`] using the given [`Path`].
     ///
     /// # Errors
@@ -19,10 +19,20 @@ impl INIReader {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, std::io::Error> {
         Ok(Self::from(Box::new(File::open(path)?) as Box<dyn Read>))
     }
+
+    /// Tries to get the `INIReader` for the rimpy config file.
+    ///
+    /// # Errors
+    /// * If [`get_config_ini_path`] fails
+    /// * If `Self::new` fails using that path; i.e. if it can't open it with `File::open`
+    pub fn from_rimpy_config_ini() -> Result<Self, INIError> {
+        let path = get_config_ini_path().map_err(INIError::VarError)?;
+        Self::new(path).map_err(INIError::IOError)
+    }
 }
 
-impl From<Box<dyn Read>> for INIReader {
-    fn from(reader: Box<dyn Read>) -> Self {
+impl<'a> From<Box<dyn Read + 'a>> for INIReader<'a> {
+    fn from(reader: Box<dyn Read + 'a>) -> Self {
         Self {
             reader,
             section: None,
@@ -31,7 +41,7 @@ impl From<Box<dyn Read>> for INIReader {
     }
 }
 
-impl Iterator for INIReader {
+impl Iterator for INIReader<'_> {
     type Item = Result<INIKeyValuePair, INIError>;
 
     /// Returns `Some(Ok(_))` if it could parse another line.
@@ -50,7 +60,7 @@ impl Iterator for INIReader {
 
             // Line is a section
             if line.trim().starts_with('[') {
-                line.drain(0..line.find('[').unwrap());
+                line.drain(0..=line.find('[').unwrap());
                 line.drain(line.find(']').unwrap()..line.len());
                 self.section = Some(line);
                 continue;
@@ -75,14 +85,19 @@ impl Iterator for INIReader {
     }
 }
 
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct INIKeyValuePair {
     pub section: Option<String>,
     pub key: String,
     pub value: String,
 }
 
+#[non_exhaustive]
 #[derive(Debug)]
 pub enum INIError {
     InvalidData(String),
+    IOError(std::io::Error),
+    VarError(std::env::VarError),
 }
 

@@ -30,3 +30,13 @@ fn get_config_dir_from_env() -> Result<PathBuf, VarError> {
     Err(VarError::NotPresent)
 }
 
+/// Gets the `config.ini` path for rimpy.
+///
+/// # Errors
+/// See [`get_config_dir`]
+pub fn get_config_ini_path() -> Result<PathBuf, VarError> {
+    let mut p = get_config_dir()?;
+    p.push("config.ini");
+    Ok(p)
+}
+

@@ -1,13 +1,11 @@
 [package]
 name = "rimrs"
 description = "RimWorld mod manager"
-version = "0.0.5"
+version = "0.0.6"
 edition = "2021"
 license = "Unlicense"
 homepage = "https://github.com/Breadinator/rimrs"
 repository = "https://github.com/Breadinator/rimrs"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 # gui
@@ -19,7 +17,6 @@ env_logger = "0.10.0"
 log = "0.4.17"
 
 # parsing
-configparser = "3.0.2"
 xml-rs = "0.8.4"
 
 open = "3.2"

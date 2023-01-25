@@ -1,15 +1,14 @@
-use crate::helpers::config::get_config_dir;
+use crate::serialization::ini::{
+    INIReader,
+    INIError,
+};
 use std::{
     collections::HashMap,
-    path::{
-        PathBuf,
-        Path
-    },
+    path::{PathBuf, Path},
 };
-use configparser::ini::Ini;
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct RimPyConfig {
     pub colors: Option<HashMap<String, String>>,
     pub folders: RimPyConfigFolders,
@@ -26,75 +25,82 @@ pub struct RimPyConfigFolders {
 }
 
 impl RimPyConfig {
-    #[allow(clippy::missing_errors_doc)]
+    /// Tries to read the rimpy config from its `config.ini` file.
+    ///
+    /// # Errors
+    /// * If it can't find the `config.ini` file in the first place
+    /// * If it can't open the file (e.g. doesn't exist, perms)
+    /// * If it can't parse that file as INI-syntax
     pub fn from_file() -> Result<Self, ReadRimPyConfigError> {
-        let mut path = get_config_dir()?;
-        path.push("config.ini");
-        Self::from_path(path)
+        Self::try_from(INIReader::from_rimpy_config_ini()?)
+            .map_err(std::convert::Into::into)
     }
 
-    #[allow(clippy::missing_errors_doc)]
-    pub fn from_path(path: impl AsRef<Path>) -> Result<Self, ReadRimPyConfigError> {
-        let ini = Ini::new().load(path)
-            .map_err(ReadRimPyConfigError::INIError)?;
-        Self::from_ini_map(ini)
-    }
-
-    #[allow(clippy::missing_errors_doc)]
-    #[allow(clippy::needless_pass_by_value)]
-    pub fn from_ini_map(ini: HashMap<String, HashMap<String, Option<String>>>) -> Result<Self, ReadRimPyConfigError> {
-        // probably a way to do this without cloning, but this is only ran once and i can't afford the brain cells
-        let colors: Option<HashMap<String, String>> = ini.get("colors").map(|colors| colors.iter()
-            .filter_map(|(k, v)| { v.as_ref().map(|v| (k.clone(), v.clone())) })
-            .collect()
-        );
-
-        let folders = if let Some(ini_folders) = ini.get("folders") {
-            RimPyConfigFolders::from(ini_folders)
-        } else {
-            RimPyConfigFolders::default()
-        };
-
-        Ok(Self { colors, folders })
+    /// Tries to read the rimpy config from a given path.
+    ///
+    /// # Errors
+    /// * If it can't open the file (e.g. doesn't exist, perms)
+    /// * If it can't parse that file as INI-syntax
+    pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, INIError> {
+        Self::try_from(INIReader::new(path).map_err(INIError::IOError)?)
+            .map_err(std::convert::Into::into)
     }
 }
 
-impl From<&HashMap<String, Option<String>>> for  RimPyConfigFolders {
-    fn from(map: &HashMap<String, Option<String>>) -> Self {
-        let mut out = RimPyConfigFolders::default();
+impl TryFrom<INIReader<'_>> for RimPyConfig {
+    type Error = INIError;
+    fn try_from(reader: INIReader<'_>) -> Result<Self, INIError> {
+        let mut conf = Self::default();
+        let mut colors = HashMap::new();
 
-        if let Some(config_folder) = map.get("config folder") {
-            out.config_folder = config_folder.clone().map(PathBuf::from);
-        }
-        if let Some(game_folder) = map.get("game folder") {
-            out.game_folder = game_folder.clone().map(PathBuf::from);
-        }
-        if let Some(local_mods) = map.get("local mods") {
-            out.local_mods = local_mods.clone().map(PathBuf::from);
-        }
-        if let Some(expansions) = map.get("expansions") {
-            out.expansions = expansions.clone().map(PathBuf::from);
-        }
-        if let Some(steam_mods) = map.get("steam mods") {
-            out.steam_mods = steam_mods.clone().map(PathBuf::from);
-        }
-        if let Some(steamcmd) = map.get("steam cmd") {
-            out.steamcmd = steamcmd.clone().map(PathBuf::from);
+        // indentation go brrr
+        for kvp in reader {
+            if let Ok(kvp) = kvp {
+                match kvp.section.as_deref() {
+                    Some("Folders") => {
+                        match kvp.key.as_str() {
+                            "Config folder" => conf.folders.config_folder = Some(PathBuf::from(kvp.value)),
+                            "Game folder" => conf.folders.game_folder = Some(PathBuf::from(kvp.value)),
+                            "Local mods" => conf.folders.local_mods = Some(PathBuf::from(kvp.value)),
+                            "Expansions" => conf.folders.expansions = Some(PathBuf::from(kvp.value)),
+                            "Steam mods" => conf.folders.steam_mods = Some(PathBuf::from(kvp.value)),
+                            "SteamCMD" => conf.folders.steamcmd = Some(PathBuf::from(kvp.value)),
+                            _ => {}
+                        }
+                    }
+                    Some("Colors") => {
+                        colors.insert(kvp.key, kvp.value);
+                    }
+                    _ => {}
+                }
+            } else if let Err(err) = kvp {
+                return Err(err);
+            }
         }
 
-        out
+        if !colors.is_empty() {
+            conf.colors = Some(colors);
+        }
+
+        Ok(conf)
     }
 }
 
 #[derive(Debug)]
 pub enum ReadRimPyConfigError {
     VarError(std::env::VarError),
-    INIError(String),
+    INIError(crate::serialization::ini::INIError),
 }
 
 impl From<std::env::VarError> for ReadRimPyConfigError {
     fn from(err: std::env::VarError) -> Self {
         Self::VarError(err)
+    }
+}
+
+impl From<crate::serialization::ini::INIError> for ReadRimPyConfigError {
+    fn from(err: crate::serialization::ini::INIError) -> Self {
+        Self::INIError(err)
     }
 }
 
