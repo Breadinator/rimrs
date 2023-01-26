@@ -1,11 +1,11 @@
 use crate::{
     helpers::traits::{LogIfErr, ToStringOrEmpty},
-    serialization::rimpy_config::{
-        RimPyConfig,
-        ReadRimPyConfigError,
-    },
+    serialization::rimpy_config::RimPyConfig,
 };
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    sync::Arc,
+};
 use eframe::egui::{
     Widget,
     Ui,
@@ -17,34 +17,37 @@ use egui_extras::{
     TableRow,
 };
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct PathsPanel {
-    rimpy_config: Option<RimPyConfig>,
+    rimpy_config: Arc<RimPyConfig>,
+    version: String,
 }
 
 impl PathsPanel {
-    fn read_rimpy_config_if_uncached(&mut self) -> Result<(), ReadRimPyConfigError> {
-        if self.rimpy_config.is_some() {
-            return Ok(());
+    #[must_use]
+    pub fn new(rimpy_config: Arc<RimPyConfig>, version: String) -> Self {
+        Self {
+            rimpy_config,
+            version,
         }
-        self.rimpy_config = Some(RimPyConfig::from_file()?);
-        Ok(())
     }
 
-    fn build_table(ui: &mut Ui, conf: &mut RimPyConfig) -> Response {
-        ui.group(|ui| {
+    fn build_table(ui: &mut Ui, conf: &Arc<RimPyConfig>, version: &String) -> Response {
+        ui.scope(|ui| {
             TableBuilder::new(ui)
                 .column(Column::auto())
                 .column(Column::remainder())
                 .column(Column::auto())
                 .body(|mut body| {
+                    const H: f32 = 24.0;
+
                     macro_rules! r {
                         ($func:ident) => {
-                            body.row(24.0, |mut row| $func(&mut row, conf))
+                            body.row(H, |mut row| $func(&mut row, conf))
                         }
                     }
 
-                    r!(row_1);
+                    body.row(H, |mut row| row_1(&mut row, version));
                     r!(row_2);
                     r!(row_3);
                     r!(row_4);
@@ -56,31 +59,20 @@ impl PathsPanel {
 
 impl Widget for &mut PathsPanel {
     fn ui(self, ui: &mut Ui) -> Response {
-        if let Err(e) = self.read_rimpy_config_if_uncached() {
-            return ui.label(format!("An error occurred: {e:?}"));
-        }
-
-        match self.rimpy_config.as_mut() {
-            Some(rimpy_config) => PathsPanel::build_table(ui, rimpy_config),
-            None => {
-                ui.group(|ui| {
-                    ui.label("An error occurred when reading the RimPy config file!");
-                }).response
-            },
-        }
+        PathsPanel::build_table(ui, &self.rimpy_config, &self.version)
     }
 }
 
-fn row_1(row: &mut TableRow, _conf: &mut RimPyConfig) {
+fn row_1(row: &mut TableRow, version: &String) {
     row.col(|ui| {
         open_rimpy_button(ui);
     });
     row.col(|ui| {
-        ui.label("Game version: ???");
+        ui.label(format!("Game version: {version}"));
     });
 }
 
-fn row_2(row: &mut TableRow, conf: &mut RimPyConfig) {
+fn row_2(row: &mut TableRow, conf: &Arc<RimPyConfig>) {
     row.col(|ui| {
         open_button(ui, "Game folder", &conf.folders.game_folder);
     });
@@ -89,7 +81,7 @@ fn row_2(row: &mut TableRow, conf: &mut RimPyConfig) {
     });
 }
 
-fn row_3(row: &mut TableRow, conf: &mut RimPyConfig) {
+fn row_3(row: &mut TableRow, conf: &Arc<RimPyConfig>) {
     row.col(|ui| {
         open_button(ui, "Config folder", &conf.folders.config_folder);
     });
@@ -98,7 +90,7 @@ fn row_3(row: &mut TableRow, conf: &mut RimPyConfig) {
     });
 }
 
-fn row_4(row: &mut TableRow, conf: &mut RimPyConfig) {
+fn row_4(row: &mut TableRow, conf: &Arc<RimPyConfig>) {
      row.col(|ui| {
         open_button(ui, "Steam mods", &conf.folders.steam_mods);
     });
@@ -107,7 +99,7 @@ fn row_4(row: &mut TableRow, conf: &mut RimPyConfig) {
     });
 }
 
-fn row_5(row: &mut TableRow, conf: &mut RimPyConfig) {
+fn row_5(row: &mut TableRow, conf: &Arc<RimPyConfig>) {
     row.col(|ui| {
         open_button(ui, "Local mods", &conf.folders.local_mods);
     });

@@ -21,11 +21,16 @@ pub use mods::*;
 
 // local imports
 use panels::panel_using_widget;
-use serialization::rimpy_config::RimPyConfig;
+use serialization::{
+    rimpy_config::RimPyConfig,
+    mods_config::ModsConfig,
+};
+use std::sync::{Arc, RwLock};
 
 #[derive(Debug)]
 pub struct RimRs {
-    rimpy_config: RimPyConfig,
+    rimpy_config: Arc<RimPyConfig>,
+    mods_config: Arc<RwLock<ModsConfig>>,
     paths_panel: panels::PathsPanel,
     hint_panel: panels::HintPanel,
     mods_panel: panels::ModsPanel,
@@ -39,13 +44,25 @@ impl RimRs {
     #[must_use]
     #[allow(unused_variables)]
     pub fn new(cc: &CreationContext<'_>) -> Self {
-        let conf = RimPyConfig::from_file().unwrap();
+        let rimpy_config = Arc::from(RimPyConfig::from_file().unwrap());
+
+        let mut mods_config_path = rimpy_config.folders.config_folder.clone()
+            .expect("Game config folder not found in RimPy `config.ini`");
+        mods_config_path.push("ModsConfig.xml");
+        let mods_config = Arc::from(RwLock::from(ModsConfig::try_from(mods_config_path.as_path()).unwrap()));
+
+        let version = mods_config.read().unwrap().version.clone().unwrap_or(String::from("???"));
+
+        let paths_panel = panels::PathsPanel::new(rimpy_config.clone(), version);
+        let hint_panel = panels::HintPanel::default();
+        let mods_panel = panels::ModsPanel::new(rimpy_config.clone(), mods_config.clone());
 
         let mut s = Self {
-            rimpy_config: conf,
-            paths_panel: panels::PathsPanel::default(),
-            hint_panel: panels::HintPanel::default(),
-            mods_panel: panels::ModsPanel::default(),
+            rimpy_config,
+            mods_config,
+            paths_panel,
+            hint_panel,
+            mods_panel,
         };
 
         s.update_modlist();

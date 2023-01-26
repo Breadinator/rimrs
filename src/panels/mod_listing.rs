@@ -25,10 +25,28 @@ impl From<&crate::ModList> for ModListing {
     }
 }
 
+impl From<Vec<String>> for ModListing {
+    fn from(mods: Vec<String>) -> Self {
+        Self {
+            items: mods.into_iter()
+                    .map(ModListingItem::from)
+                    .collect::<Vec<ModListingItem>>()
+        }
+    }
+}
+
 impl From<&crate::ModMetaData> for ModListingItem {
     fn from(m: &crate::ModMetaData) -> Self {
         let package_id = m.packageId.clone().unwrap_or_default();
 
+        Self {
+            package_id,
+        }
+    }
+}
+
+impl From<String> for ModListingItem {
+    fn from(package_id: String) -> Self {
         Self {
             package_id,
         }
@@ -43,7 +61,7 @@ impl Widget for &ModListingItem {
 
 impl Widget for &ModListing {
     fn ui(self, ui: &mut Ui) -> Response {
-        ui.group(|ui| {
+        ui.scope(|ui| {
             for item in &self.items {
                 ui.add(item);
             }

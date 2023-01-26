@@ -9,7 +9,6 @@ use std::{
     },
     fs,
 };
-#[allow(clippy::wildcard_imports)]
 use crate::{
     mods::Dependency,
     serialization::{

@@ -2,6 +2,7 @@ use std::io::Read;
 
 pub mod config;
 pub mod traits;
+pub mod ui;
 
 /// To get rid of BOM <https://en.wikipedia.org/wiki/Byte_order_mark>, which `xml-rs` doesn't allow.
 ///
