@@ -3,16 +3,11 @@ use eframe::egui::{
     Ui,
     Response,
 };
+use super::ModListingItem;
 
 #[derive(Debug, Clone, Default)]
 pub struct ModListing {
     items: Vec<ModListingItem>,
-}
-
-#[allow(clippy::module_name_repetitions)]
-#[derive(Debug, Clone)]
-struct ModListingItem {
-    pub package_id: String,
 }
 
 impl From<&crate::ModList> for ModListing {
@@ -32,30 +27,6 @@ impl From<Vec<String>> for ModListing {
                     .map(ModListingItem::from)
                     .collect::<Vec<ModListingItem>>()
         }
-    }
-}
-
-impl From<&crate::ModMetaData> for ModListingItem {
-    fn from(m: &crate::ModMetaData) -> Self {
-        let package_id = m.packageId.clone().unwrap_or_default();
-
-        Self {
-            package_id,
-        }
-    }
-}
-
-impl From<String> for ModListingItem {
-    fn from(package_id: String) -> Self {
-        Self {
-            package_id,
-        }
-    }
-}
-
-impl Widget for &ModListingItem {
-    fn ui(self, ui: &mut Ui) -> Response {
-        ui.label(&self.package_id)
     }
 }
 

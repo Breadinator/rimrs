@@ -14,6 +14,7 @@ use eframe::{
 pub mod panels;
 pub mod helpers;
 pub mod serialization;
+pub mod widgets;
 
 // mod forward reexports
 mod mods;
@@ -28,15 +29,15 @@ use serialization::{
 use std::sync::{Arc, RwLock};
 
 #[derive(Debug)]
-pub struct RimRs {
+pub struct RimRs<'a> {
     rimpy_config: Arc<RimPyConfig>,
     mods_config: Arc<RwLock<ModsConfig>>,
     paths_panel: panels::PathsPanel,
     hint_panel: panels::HintPanel,
-    mods_panel: panels::ModsPanel,
+    mods_panel: panels::ModsPanel<'a>,
 }
 
-impl RimRs {
+impl RimRs<'_> {
     /// Creates a new [`RimRs`] app instance.
     ///
     /// # Panics
@@ -89,7 +90,7 @@ impl RimRs {
     }
 }
 
-impl App for RimRs {
+impl App for RimRs<'_> {
     #[allow(unused_variables)]
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         TopBottomPanel::top("paths_panel").show(ctx, |ui| panel_using_widget(ui, &mut self.paths_panel));

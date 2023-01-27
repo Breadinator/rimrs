@@ -8,10 +8,13 @@ use egui_extras::{
 };
 use crate::{
     ModList,
-    ModMetaData,
-    panels::ModListing,
     ModsConfig,
     RimPyConfig,
+    widgets::{
+        ModListing,
+        ModInfoWidget,
+        Btns,
+    },
 };
 use std::sync::{
     Arc,
@@ -19,17 +22,18 @@ use std::sync::{
 };
 
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
-pub struct ModsPanel {
+#[derive(Debug)]
+pub struct ModsPanel<'a> {
     pub mmd: ModList,
     inactive: ModListing,
     active: ModListing,
     mod_info_widget: ModInfoWidget,
     rimpy_config: Arc<RimPyConfig>,
     mods_config: Arc<RwLock<ModsConfig>>,
+    btns: Btns<'a>,
 }
 
-impl ModsPanel {
+impl ModsPanel<'_> {
     pub fn new(rimpy_config: Arc<RimPyConfig>, mods_config: Arc<RwLock<ModsConfig>>) -> Self {
         let active = ModListing::from(mods_config.read().map_or_else(|_| Vec::new(), |mc| mc.activeMods.clone()));
 
@@ -40,11 +44,12 @@ impl ModsPanel {
             mod_info_widget: ModInfoWidget::default(),
             rimpy_config,
             mods_config,
+            btns: Btns::default(),
         }
     }
 }
 
-impl Widget for &mut ModsPanel {
+impl Widget for &mut ModsPanel<'_> {
     fn ui(self, ui: &mut Ui) -> eframe::egui::Response {
         let scope = ui.scope(|ui| { let w = ui.available_width() / 10.0;
             let mod_info_width = 4.0 * w;
@@ -60,25 +65,10 @@ impl Widget for &mut ModsPanel {
                     row.col(|ui| {ui.add(&self.mod_info_widget);});
                     row.col(|ui| {ui.add(&self.inactive);});
                     row.col(|ui| {ui.add(&self.active);});
-                    row.col(|ui| {ui.label("btns");});
+                    row.col(|ui| {ui.add(&self.btns);});
                 }));
         });
         scope.response
-    }
-}
-
-#[derive(Debug, Default, Clone)]
-struct ModInfoWidget(Option<ModMetaData>);
-
-impl From<ModMetaData> for ModInfoWidget {
-    fn from(mmd: ModMetaData) -> Self {
-        Self(Some(mmd))
-    }
-}
-
-impl Widget for &ModInfoWidget {
-    fn ui(self, ui: &mut Ui) -> eframe::egui::Response {
-        ui.label("mod info widget")
     }
 }
 
