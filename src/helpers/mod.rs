@@ -1,4 +1,12 @@
-use std::io::Read;
+use std::{
+    io::Read,
+    sync::{
+        Arc,
+        Mutex,
+        atomic::AtomicUsize,
+    },
+};
+use once_cell::sync::Lazy;
 
 pub mod config;
 pub mod traits;
@@ -50,6 +58,15 @@ pub fn read_line(reader: &mut impl Read, buf: &mut [u8;1]) -> Result<Option<Stri
     } else {
         Ok(Some(String::from_utf8(line)?))
     }
+}
+
+pub fn arc_mutex_none<T>() -> Arc<Mutex<Option<T>>> {
+    Arc::new(Mutex::new(None))
+}
+
+#[must_use]
+pub fn fetch_inc_id(atomic: &Lazy<Arc<AtomicUsize>>) -> usize {
+    atomic.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
 }
 
 #[derive(Debug)]

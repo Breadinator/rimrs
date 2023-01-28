@@ -28,10 +28,11 @@ use serialization::{
 };
 use std::sync::{Arc, RwLock};
 
+#[non_exhaustive]
 #[derive(Debug)]
 pub struct RimRs<'a> {
-    rimpy_config: Arc<RimPyConfig>,
-    mods_config: Arc<RwLock<ModsConfig>>,
+    pub rimpy_config: Arc<RimPyConfig>,
+    pub mods_config: Arc<RwLock<ModsConfig>>,
     paths_panel: panels::PathsPanel,
     hint_panel: panels::HintPanel,
     mods_panel: panels::ModsPanel<'a>,
@@ -42,10 +43,13 @@ impl RimRs<'_> {
     ///
     /// # Panics
     /// * If it fails to read [`RimPyConfig`]
+    /// * If it can't read the initial mod folders
     #[must_use]
     #[allow(unused_variables)]
     pub fn new(cc: &CreationContext<'_>) -> Self {
-        let rimpy_config = Arc::from(RimPyConfig::from_file().unwrap());
+        let rimpy_config_unwrapped = RimPyConfig::from_file().unwrap();
+        let mod_list = ModList::try_from(&rimpy_config_unwrapped).unwrap();
+        let rimpy_config = Arc::new(rimpy_config_unwrapped);
 
         let mut mods_config_path = rimpy_config.folders.config_folder.clone()
             .expect("Game config folder not found in RimPy `config.ini`");
@@ -56,19 +60,15 @@ impl RimRs<'_> {
 
         let paths_panel = panels::PathsPanel::new(rimpy_config.clone(), version);
         let hint_panel = panels::HintPanel::default();
-        let mods_panel = panels::ModsPanel::new(rimpy_config.clone(), mods_config.clone());
+        let mods_panel = panels::ModsPanel::new(rimpy_config.clone(), mods_config.clone(), mod_list);
 
-        let mut s = Self {
+        Self {
             rimpy_config,
             mods_config,
             paths_panel,
             hint_panel,
             mods_panel,
-        };
-
-        s.update_modlist();
-
-        s
+        }
     }
 
     pub fn update_modlist(&mut self) {
@@ -84,7 +84,7 @@ impl RimRs<'_> {
         }
 
         match ModList::from_dirs(paths) {
-            Ok(mod_list) => self.mods_panel.mmd = mod_list,
+            Ok(mod_list) => self.mods_panel.mods = mod_list,
             Err(e) => log::error!("{e}"),
         }
     }
