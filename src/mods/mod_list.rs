@@ -56,7 +56,7 @@ impl ModList {
 impl<I: IntoIterator<Item=ModMetaData>> From<I> for ModList {
     fn from(mods_iter: I) -> Self {
         let mods: HashMap<String, ModMetaData> = mods_iter.into_iter()
-              .filter_map(|m| m.packageId.clone().map(|pid| (pid, m)))
+              .filter_map(|m| m.packageId.clone().map(|pid| (pid.to_lowercase(), m)))
               .collect();
 
         ModList {

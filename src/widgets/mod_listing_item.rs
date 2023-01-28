@@ -66,7 +66,7 @@ impl Widget for &ModListingItem {
             let lab = ui.add(SelectableLabel::new(is_selected, self.get_display_name()));
 
             if lab.clicked() {
-                *sel = Some(self.package_id.clone());
+                *sel = Some(self.package_id.clone().to_lowercase());
             }
 
             lab
