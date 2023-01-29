@@ -39,12 +39,17 @@ impl ModsPanel<'_> {
         let selected = arc_mutex_none::<String>();
 
         let active_mods = mods_config.read().map_or_else(|_| Vec::new(), |mc| mc.activeMods.clone());
-        let active = ModListing::new(active_mods, mods.mods.clone(), selected.clone());
+        let inactive_pids = mods.package_ids().map(|pids| pids.into_iter().filter(|pid| !active_mods.contains(pid)).collect())
+            .unwrap_or_default();
+
+        let active = ModListing::new(active_mods, &mods.mods, &selected, Some(String::from("Active")));
+        let inactive = ModListing::new(inactive_pids, &mods.mods, &selected, Some(String::from("Inactive")));
+
         let mod_info_widget = ModInfo::new(mods.mods.clone(), selected);
 
         Self {
             mods,
-            inactive: ModListing::default(),
+            inactive,
             active,
             mod_info_widget,
             rimpy_config,

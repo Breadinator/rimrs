@@ -51,6 +51,17 @@ impl ModList {
             .collect();
         Ok(ModList::from(mods))
     }
+
+    /// Gets the package ids (lowercase) of all mods in the mod list.
+    /// Returns `None` if there is a [`std::sync::PoisonError`].
+    #[must_use]
+    pub fn package_ids(&self) -> Option<Vec<String>> {
+        self.mods.lock().ok().map(|map| {
+            map.keys()
+                .map(String::clone)
+                .collect()
+        })
+    }
 }
 
 impl<I: IntoIterator<Item=ModMetaData>> From<I> for ModList {
