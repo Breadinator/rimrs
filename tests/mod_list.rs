@@ -4,12 +4,13 @@ use std::path::PathBuf;
 #[test]
 fn load_steam_mods() {
     let paths: Vec<PathBuf> = vec![PathBuf::from(r#"D:\Program Files\steam\steamapps\workshop\content\294100"#)];
-    let mods = ModList::from_dirs(paths).unwrap();
-    assert_ne!(mods.mods.len(), 0);
+    let mod_list = ModList::from_dirs(paths).unwrap();
+    let mods = mod_list.mods.lock().unwrap();
+    assert_ne!(mods.len(), 0);
 
-    assert_eq!(mods.mods.get("UnlimitedHugs.AllowTool").unwrap().author, Some(String::from("UnlimitedHugs")));
+    assert_eq!(mods.get("unlimitedhugs.allowtool").unwrap().author, Some(String::from("UnlimitedHugs")));
 
-    let la = mods.mods.get("Mlie.TabSorting").unwrap().loadAfter.clone().unwrap();
+    let la = mods.get("mlie.tabsorting").unwrap().loadAfter.clone().unwrap();
     assert!(la.contains("brrainz.harmony"));
     assert!(la.contains("Mlie.RemoveIndustrialStuff"));
     assert!(la.contains("Mlie.RemoveSpacerStuff"));
