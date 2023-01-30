@@ -37,7 +37,7 @@ impl ModListing {
         selected: &Arc<Mutex<Option<String>>>,
         title: Option<String>,
     ) -> Self {
-        let id = format!("modlisting{}", fetch_inc_id(&MOD_LISTING_COUNTER));
+        let id = format!("modlisting{}", fetch_inc_id());
         let items = mods.into_iter()
             .map(|m| ModListingItem::new(m, mod_meta_data.clone(), selected.clone()))
             .collect();
@@ -78,12 +78,12 @@ impl Widget for &ModListing {
                 ui.heading(title);
             }
 
-            let scroll_area = ScrollArea::vertical();
-            scroll_area.show(ui, |ui| {
-                for item in &self.items {
-                    ui.add(item);
-                }
-            });
+            ScrollArea::vertical()
+                .show(ui, |ui| {
+                    for item in &self.items {
+                        ui.add(item);
+                    }
+                });
         }).response
     }
 }

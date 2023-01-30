@@ -28,6 +28,8 @@ use serialization::{
 };
 use std::sync::{Arc, RwLock};
 
+const CHANNEL_BUFFER: usize = 32;
+
 #[non_exhaustive]
 #[derive(Debug)]
 pub struct RimRs<'a> {
@@ -60,7 +62,7 @@ impl RimRs<'_> {
 
         let paths_panel = panels::PathsPanel::new(rimpy_config.clone(), version);
         let hint_panel = panels::HintPanel::default();
-        let mods_panel = panels::ModsPanel::new(rimpy_config.clone(), mods_config.clone(), mod_list);
+        let mods_panel = panels::ModsPanel::new::<CHANNEL_BUFFER>(rimpy_config.clone(), mods_config.clone(), mod_list);
 
         Self {
             rimpy_config,

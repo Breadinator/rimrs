@@ -11,6 +11,16 @@ use once_cell::sync::Lazy;
 pub mod config;
 pub mod traits;
 pub mod ui;
+pub mod vec_ops;
+
+mod atomic_flag;
+pub use atomic_flag::AtomicFlag;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Side {
+    Left,
+    Right,
+}
 
 /// To get rid of BOM <https://en.wikipedia.org/wiki/Byte_order_mark>, which `xml-rs` doesn't allow.
 ///
@@ -64,9 +74,11 @@ pub fn arc_mutex_none<T>() -> Arc<Mutex<Option<T>>> {
     Arc::new(Mutex::new(None))
 }
 
+static ID_COUNTER: Lazy<Arc<AtomicUsize>> = Lazy::new(|| Arc::new(AtomicUsize::new(0)));
+
 #[must_use]
-pub fn fetch_inc_id(atomic: &Lazy<Arc<AtomicUsize>>) -> usize {
-    atomic.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+pub fn fetch_inc_id() -> usize {
+    ID_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
 }
 
 #[derive(Debug)]

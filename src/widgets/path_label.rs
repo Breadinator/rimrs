@@ -7,15 +7,24 @@ use eframe::egui::{
 };
 
 #[derive(Debug, Clone)]
-pub struct PathLabel(pub PathBuf);
+pub struct PathLabel(PathBuf);
+
+impl PathLabel {
+    #[must_use]
+    pub fn new(mut path: PathBuf) -> Self {
+        if path.file_name() == Some(std::ffi::OsStr::new("About.xml")) {
+            path.pop(); // now ends in /About
+            path.pop(); // should now be the root mod dir
+        }
+        Self(path)
+    }
+}
 
 impl Widget for &PathLabel {
     fn ui(self, ui: &mut Ui) -> Response {
         let path = self.0.as_os_str().to_str().unwrap_or_default();
-        let lab = ui.label(path);
+        let lab = ui.button(path); // kinda ugly but at least it works lol
 
-        // idk why this isn't working?
-        // lab.clicked() is false even when clicked
         if lab.clicked() && !path.is_empty() {
             open::that(self.0.clone())
                 .log_if_err();
@@ -24,3 +33,4 @@ impl Widget for &PathLabel {
         lab
     }
 }
+

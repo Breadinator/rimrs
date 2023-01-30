@@ -9,6 +9,7 @@ use std::{
     sync::{
         Arc,
         Mutex,
+        mpsc::SyncSender,
     },
     collections::HashMap,
 };
@@ -18,6 +19,7 @@ pub struct ModListingItem {
     pub package_id: String,
     pub mod_meta_data: Option<Arc<Mutex<HashMap<String, ModMetaData>>>>,
     pub selected: Arc<Mutex<Option<String>>>,
+    // pub tx: SyncSender<String>,
 }
 
 impl ModListingItem {

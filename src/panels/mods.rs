@@ -12,14 +12,22 @@ use crate::{
     RimPyConfig,
     widgets::{
         ModListing,
+        ModListingItem,
         ModInfo,
         Btns,
     },
-    helpers::arc_mutex_none,
+    helpers::{
+        arc_mutex_none,
+        vec_ops::VecOps,
+    },
 };
 use std::sync::{
     Arc,
     RwLock,
+    mpsc::{
+        sync_channel,
+        Receiver,
+    },
 };
 
 #[allow(dead_code)]
@@ -32,11 +40,15 @@ pub struct ModsPanel<'a> {
     btns: Btns<'a>,
     rimpy_config: Arc<RimPyConfig>,
     mods_config: Arc<RwLock<ModsConfig>>,
+    // inactive_receiver: Receiver<VecOps<ModListingItem>>,
+    // active_receiver: Receiver<VecOps<ModListingItem>>,
 }
 
 impl ModsPanel<'_> {
-    pub fn new(rimpy_config: Arc<RimPyConfig>, mods_config: Arc<RwLock<ModsConfig>>, mods: ModList) -> Self {
+    pub fn new<const SIZE: usize>(rimpy_config: Arc<RimPyConfig>, mods_config: Arc<RwLock<ModsConfig>>, mods: ModList) -> Self {
         let selected = arc_mutex_none::<String>();
+        // let (inactive_tx, inactive_receiver) = sync_channel(SIZE);
+        // let (active_tx, active_receiver) = sync_channel(SIZE);
 
         let active_mods = mods_config.read().map_or_else(|_| Vec::new(), |mc| mc.activeMods.clone());
         let inactive_pids = mods.package_ids().map(|pids| pids.into_iter().filter(|pid| !active_mods.contains(pid)).collect())
@@ -55,6 +67,8 @@ impl ModsPanel<'_> {
             rimpy_config,
             mods_config,
             btns: Btns::default(),
+            // inactive_receiver,
+            // active_receiver,
         }
     }
 }
