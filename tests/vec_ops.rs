@@ -152,3 +152,21 @@ fn for_each_mut_multi() {
     assert_eq!(b, vec![18, 14, 24, 38]);
 }
 
+#[test]
+fn move_up_multi() {
+    let mut a = vec!["a", "b", "c"];
+    let mut b = vec!["d", "e", "f"];
+    MultiVecOp::MoveUp(Box::new(|item| item == &"b")).run(&mut a, &mut b).unwrap();
+    assert_eq!(a, vec!["b", "a", "c"]);
+    assert_eq!(b, vec!["d", "e", "f"]);
+}
+
+#[test]
+fn move_down_multi() {
+    let mut a = vec!["a", "b", "c"];
+    let mut b = vec!["d", "e", "f"];
+    MultiVecOp::MoveDown(Box::new(|item| item == &"e")).run(&mut a, &mut b).unwrap();
+    assert_eq!(a, vec!["a", "b", "c"]);
+    assert_eq!(b, vec!["d", "f", "e"]);
+}
+

@@ -1,5 +1,8 @@
-use super::Side;
 use thiserror::Error;
+use crate::{
+    traits::{MoverMatcher, VecMoveError},
+    helpers::Side,
+};
 
 #[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum RunError {
@@ -9,6 +12,8 @@ pub enum RunError {
     TryReserveError(#[from] std::collections::TryReserveError),
     #[error("predicate didn't match any items")]
     NotFound,
+    #[error("{0}")]
+    VecMoveError(#[from] VecMoveError),
 }
 pub type RunResult = Result<(), RunError>;
 
@@ -32,6 +37,9 @@ pub enum VecOp<'a, T> {
     Remove(usize),
 
     ForEachMut(Box<dyn Fn(&mut T) + 'a>),
+
+    MoveUp(Box<crate::traits::MoverPredicate<'a, T>>),
+    MoveDown(Box<crate::traits::MoverPredicate<'a, T>>),
 }
 
 impl<T: std::fmt::Debug> std::fmt::Debug for VecOp<'_, T> {
@@ -41,11 +49,14 @@ impl<T: std::fmt::Debug> std::fmt::Debug for VecOp<'_, T> {
             Self::Push(_) => "Push",
             Self::Remove(_) => "Remove",
             Self::ForEachMut(_) => "ForEachMut",
+            Self::MoveUp(_) => "MoveUp",
+            Self::MoveDown(_) => "MoveDown",
         }, match self {
             Self::Swap(a, b) => format!("{a}, {b}"),
             Self::Push(item) => format!("{item:?}"),
             Self::Remove(index) => index.to_string(),
             Self::ForEachMut(_) => String::from("Fn(&mut T)"),
+            Self::MoveUp(_) | Self::MoveDown(_) => String::from("Fn(&T) -> bool"),
         }))
     }
 }
@@ -61,6 +72,8 @@ impl<'a, T> VecOp<'a, T> {
             Self::Push(item) => Self::push(vec, item),
             Self::Remove(index) => Self::remove(vec, index),
             Self::ForEachMut(operation) => { Self::for_each_mut(vec, &operation); Ok(()) },
+            Self::MoveUp(predicate) => vec.move_match_up(predicate).map_err(Into::into),
+            Self::MoveDown(predicate) => vec.move_match_down(predicate).map_err(Into::into),
         }
     }
 
@@ -120,6 +133,10 @@ pub enum MultiVecOp<'a, T> {
     /// Applies the given operation on every element of both `Vec`s.
     /// Always returns `Ok`.
     ForEachMut(Box<dyn Fn(&mut T)>),
+
+    MoveUp(crate::traits::MoverPredicate<'a, T>),
+    MoveDown(crate::traits::MoverPredicate<'a, T>),
+
 }
 
 impl<'a, T> MultiVecOp<'a, T> {
@@ -135,6 +152,8 @@ impl<'a, T> MultiVecOp<'a, T> {
             Self::MoveFrom(Side::Right, predicate) => Self::move_from(right, left, predicate),
             Self::Swap(predicate) => Self::swap(left, right, predicate),
             Self::ForEachMut(operation) => { Self::for_each_mut(left, right, &operation); Ok(()) },
+            Self::MoveUp(predicate) => Self::move_up(left, right, &predicate),
+            Self::MoveDown(predicate) => Self::move_down(left, right, &predicate),
         }
     }
 
@@ -170,6 +189,22 @@ impl<'a, T> MultiVecOp<'a, T> {
         }
         for item in right {
             operation(item);
+        }
+    }
+
+    fn move_up(left: &mut Vec<T>, right: &mut Vec<T>, predicate: &crate::traits::MoverPredicate<'a, T>) -> RunResult {
+        match left.move_match_up(Box::new(predicate)) {
+            Ok(()) => Ok(()),
+            Err(VecMoveError::NoMatch) => right.move_match_up(Box::new(predicate)).map_err(Into::into),
+            Err(err) => Err(err.into()),
+        }
+    }
+
+    fn move_down(left: &mut Vec<T>, right: &mut Vec<T>, predicate: &crate::traits::MoverPredicate<'a, T>) -> RunResult {
+        match left.move_match_down(Box::new(predicate)) {
+            Ok(()) => Ok(()),
+            Err(VecMoveError::NoMatch) => right.move_match_down(Box::new(predicate)).map_err(Into::into),
+            Err(err) => Err(err.into()),
         }
     }
 }
