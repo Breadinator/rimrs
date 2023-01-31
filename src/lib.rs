@@ -13,6 +13,7 @@ use eframe::{
 // pub mods
 pub mod panels;
 pub mod helpers;
+pub use helpers::traits;
 pub mod serialization;
 pub mod widgets;
 
