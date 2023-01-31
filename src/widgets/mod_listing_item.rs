@@ -4,7 +4,10 @@ use eframe::egui::{
     Ui,
     Response,
 };
-use crate::ModMetaData;
+use crate::{
+    ModMetaData,
+    helpers::vec_ops::MultiVecOp,
+};
 use std::{
     sync::{
         Arc,
@@ -15,24 +18,26 @@ use std::{
 };
 
 #[derive(Debug, Clone)]
-pub struct ModListingItem {
+pub struct ModListingItem<'a> {
     pub package_id: String,
     pub mod_meta_data: Option<Arc<Mutex<HashMap<String, ModMetaData>>>>,
     pub selected: Arc<Mutex<Option<String>>>,
-    // pub tx: SyncSender<String>,
+    tx: SyncSender<MultiVecOp<'a, ModListingItem<'a>>>,
 }
 
-impl ModListingItem {
+impl<'a> ModListingItem<'a> {
     #[must_use]
     pub fn new(
         package_id: String,
         mod_meta_data: Arc<Mutex<HashMap<String, ModMetaData>>>,
         selected: Arc<Mutex<Option<String>>>,
+        tx: SyncSender<MultiVecOp<'a, ModListingItem<'a>>>,
     ) -> Self {
         Self {
             package_id,
             mod_meta_data: Some(mod_meta_data),
             selected,
+            tx,
         }
     }
 
@@ -51,7 +56,7 @@ impl ModListingItem {
     }
 }
 
-impl From<String> for ModListingItem {
+/*impl<'a> From<String> for ModListingItem<'a> {
     fn from(package_id: String) -> Self {
         Self {
             package_id,
@@ -59,9 +64,9 @@ impl From<String> for ModListingItem {
             selected: crate::helpers::arc_mutex_none(),
         }
     }
-}
+}*/
 
-impl Widget for &ModListingItem {
+impl Widget for &ModListingItem<'_> {
     fn ui(self, ui: &mut Ui) -> Response {
         if let Ok(mut sel) = self.selected.try_lock() {
             let is_selected = (*sel).clone().map_or(false, |sel| self.package_id == sel);

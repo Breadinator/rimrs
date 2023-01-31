@@ -8,21 +8,21 @@ use rimrs::helpers::{
 #[test]
 fn swap() {
     let mut a = vec![1, 2, 3];
-    VecOps::Swap(0, 2).run(&mut a).unwrap();
+    VecOp::Swap(0, 2).run(&mut a).unwrap();
     assert_eq!(a, vec![3, 2, 1]);
 }
 
 #[test]
 fn swap_out_of_bounds() {
     let mut a = vec![1, 2, 3];
-    let err = VecOps::Swap(0, 3).run(&mut a).unwrap_err();
+    let err = VecOp::Swap(0, 3).run(&mut a).unwrap_err();
     assert_eq!(err, RunError::IndexOutOfBounds);
 }
 
 #[test]
 fn push() {
     let mut a = vec![1, 2, 3];
-    let op = VecOps::Push(4);
+    let op = VecOp::Push(4);
     op.run(&mut a).unwrap();
     assert_eq!(a, vec![1, 2, 3, 4]);
 }
@@ -30,14 +30,14 @@ fn push() {
 #[test]
 fn remove() {
     let mut a = vec!["a", "b", "c"];
-    VecOps::Remove(1).run(&mut a).unwrap();
+    VecOp::Remove(1).run(&mut a).unwrap();
     assert_eq!(a, vec!["a", "c"]);
 }
 
 #[test]
 fn for_each_mut_single() {
     let mut a = vec![4, 1, 13];
-    VecOps::ForEachMut(&(|x| *x += 2)).run(&mut a).unwrap();
+    VecOp::ForEachMut(&(|x| *x += 2)).run(&mut a).unwrap();
     assert_eq!(a, vec![6, 3, 15]);
 }
 
@@ -47,7 +47,7 @@ fn for_each_mut_single() {
 fn single_op_left() {
     let mut a = vec!["a", "b", "c"];
     let mut b = vec!["d", "e"];
-    let op = MultiVecOp::SingleOp(Side::Left, VecOps::Remove(1));
+    let op = MultiVecOp::SingleOp(Side::Left, VecOp::Remove(1));
     op.run(&mut a, &mut b).unwrap();
     assert_eq!(a, vec!["a", "c"]);
 }
@@ -56,7 +56,7 @@ fn single_op_left() {
 fn single_op_right() {
     let mut a = vec!["a", "b", "c"];
     let mut b = vec!["d", "e"];
-    let op = MultiVecOp::SingleOp(Side::Right, VecOps::Remove(1));
+    let op = MultiVecOp::SingleOp(Side::Right, VecOp::Remove(1));
     op.run(&mut a, &mut b).unwrap();
     assert_eq!(b, vec!["d"]);
 }

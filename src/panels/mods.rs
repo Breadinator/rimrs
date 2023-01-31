@@ -1,5 +1,6 @@
 use eframe::egui::{
     Ui,
+    Response,
     Widget,
 };
 use egui_extras::{
@@ -18,7 +19,8 @@ use crate::{
     },
     helpers::{
         arc_mutex_none,
-        vec_ops::VecOps,
+        traits::LogIfErr,
+        vec_ops::MultiVecOp,
     },
 };
 use std::sync::{
@@ -27,6 +29,7 @@ use std::sync::{
     mpsc::{
         sync_channel,
         Receiver,
+        TryRecvError,
     },
 };
 
@@ -34,28 +37,26 @@ use std::sync::{
 #[derive(Debug)]
 pub struct ModsPanel<'a> {
     pub mods: ModList,
-    inactive: ModListing,
-    active: ModListing,
+    inactive: ModListing<'a>,
+    active: ModListing<'a>,
     mod_info_widget: ModInfo,
     btns: Btns<'a>,
     rimpy_config: Arc<RimPyConfig>,
     mods_config: Arc<RwLock<ModsConfig>>,
-    // inactive_receiver: Receiver<VecOps<ModListingItem>>,
-    // active_receiver: Receiver<VecOps<ModListingItem>>,
+    rx: Receiver<MultiVecOp<'a, ModListingItem<'a>>>,
 }
 
 impl ModsPanel<'_> {
     pub fn new<const SIZE: usize>(rimpy_config: Arc<RimPyConfig>, mods_config: Arc<RwLock<ModsConfig>>, mods: ModList) -> Self {
         let selected = arc_mutex_none::<String>();
-        // let (inactive_tx, inactive_receiver) = sync_channel(SIZE);
-        // let (active_tx, active_receiver) = sync_channel(SIZE);
+        let (tx, rx) = sync_channel(SIZE);
 
         let active_mods = mods_config.read().map_or_else(|_| Vec::new(), |mc| mc.activeMods.clone());
         let inactive_pids = mods.package_ids().map(|pids| pids.into_iter().filter(|pid| !active_mods.contains(pid)).collect())
             .unwrap_or_default();
 
-        let active = ModListing::new(active_mods, &mods.mods, &selected, Some(String::from("Active")));
-        let inactive = ModListing::new(inactive_pids, &mods.mods, &selected, Some(String::from("Inactive")));
+        let active = ModListing::new(active_mods, &mods.mods, &selected, Some(String::from("Active")), tx.clone());
+        let inactive = ModListing::new(inactive_pids, &mods.mods, &selected, Some(String::from("Inactive")), tx);
 
         let mod_info_widget = ModInfo::new(mods.mods.clone(), selected);
 
@@ -67,32 +68,47 @@ impl ModsPanel<'_> {
             rimpy_config,
             mods_config,
             btns: Btns::default(),
-            // inactive_receiver,
-            // active_receiver,
+            rx,
         }
+    }
+
+    fn tick(&mut self) {
+        loop {
+            match self.rx.try_recv() {
+                Ok(msg) => { msg.run(&mut self.inactive.items, &mut self.active.items).log_if_err(); },
+                Err(TryRecvError::Empty) => break,
+                Err(TryRecvError::Disconnected) => panic!("mods panel mpsc unexpectedly disconnected"),
+            }
+        }
+    }
+
+    fn render(&mut self, ui: &mut Ui) -> Response {
+        let scope = ui.scope(|ui| { let w = ui.available_width() / 10.0;
+        let mod_info_width = 4.0 * w;
+        let mod_listing_width = 2.5 * w;
+        let h = ui.available_height();
+
+        TableBuilder::new(ui)
+            .column(Column::exact(mod_info_width))
+            .column(Column::exact(mod_listing_width))
+            .column(Column::exact(mod_listing_width))
+            .column(Column::remainder())
+            .body(|mut body| body.row(h, |mut row| {
+                row.col(|ui| {ui.add(&mut self.mod_info_widget);});
+                row.col(|ui| {ui.add(&self.inactive);});
+                row.col(|ui| {ui.add(&self.active);});
+                row.col(|ui| {ui.add(&self.btns);});
+            }));
+        });
+
+        scope.response
     }
 }
 
 impl Widget for &mut ModsPanel<'_> {
-    fn ui(self, ui: &mut Ui) -> eframe::egui::Response {
-        let scope = ui.scope(|ui| { let w = ui.available_width() / 10.0;
-            let mod_info_width = 4.0 * w;
-            let mod_listing_width = 2.5 * w;
-            let h = ui.available_height();
-
-            TableBuilder::new(ui)
-                .column(Column::exact(mod_info_width))
-                .column(Column::exact(mod_listing_width))
-                .column(Column::exact(mod_listing_width))
-                .column(Column::remainder())
-                .body(|mut body| body.row(h, |mut row| {
-                    row.col(|ui| {ui.add(&mut self.mod_info_widget);});
-                    row.col(|ui| {ui.add(&self.inactive);});
-                    row.col(|ui| {ui.add(&self.active);});
-                    row.col(|ui| {ui.add(&self.btns);});
-                }));
-        });
-        scope.response
+    fn ui(self, ui: &mut Ui) -> Response {
+        self.tick();
+        self.render(ui)
     }
 }
 

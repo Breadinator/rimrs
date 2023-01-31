@@ -12,7 +12,7 @@ pub enum RunError {
 }
 pub type RunResult = Result<(), RunError>;
 
-pub enum VecOps<'a, T> {
+pub enum VecOp<'a, T> {
     /// Swaps items at given indices.
     ///
     /// # Errors
@@ -34,7 +34,7 @@ pub enum VecOps<'a, T> {
     ForEachMut(&'a dyn Fn(&mut T)),
 }
 
-impl<T: std::fmt::Debug> std::fmt::Debug for VecOps<'_, T> {
+impl<T: std::fmt::Debug> std::fmt::Debug for VecOp<'_, T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&format!("VecOps::{}({})", match self {
             Self::Swap(_, _) => "Swap",
@@ -50,7 +50,7 @@ impl<T: std::fmt::Debug> std::fmt::Debug for VecOps<'_, T> {
     }
 }
 
-impl<'a, T> VecOps<'a, T> {
+impl<'a, T> VecOp<'a, T> {
     /// Runs the operation.
     ///
     /// # Errors
@@ -100,7 +100,7 @@ pub enum MultiVecOp<'a, T> {
     ///
     /// # Errors
     /// See [`VecOps`] variant documentation.
-    SingleOp(Side, VecOps<'a, T>),
+    SingleOp(Side, VecOp<'a, T>),
 
     /// Moves item matching given predicate from given side to other side.
     ///
@@ -142,7 +142,7 @@ impl<'a, T> MultiVecOp<'a, T> {
         let index = from.iter().position(predicate).ok_or(RunError::NotFound)?;
         let item = from.remove(index);
 
-        VecOps::Push(item).run(to)
+        VecOp::Push(item).run(to)
     }
 
     fn swap(left: &mut Vec<T>, right: &mut Vec<T>, predicate: &'a dyn Fn(&T) -> bool) -> RunResult {
@@ -158,7 +158,7 @@ impl<'a, T> MultiVecOp<'a, T> {
             Side::Left => left.remove(index),
             Side::Right => right.remove(index),
         };
-        VecOps::Push(item).run(match from_side {
+        VecOp::Push(item).run(match from_side {
             Side::Left => right,
             Side::Right => left,
         })
