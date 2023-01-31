@@ -31,7 +31,7 @@ pub enum VecOp<'a, T> {
     /// [`RunError::IndexOutOfBounds`] if given index not in given `Vec`.
     Remove(usize),
 
-    ForEachMut(&'a dyn Fn(&mut T)),
+    ForEachMut(Box<dyn Fn(&mut T) + 'a>),
 }
 
 impl<T: std::fmt::Debug> std::fmt::Debug for VecOp<'_, T> {
@@ -60,7 +60,7 @@ impl<'a, T> VecOp<'a, T> {
             Self::Swap(a, b) => Self::swap(vec, a, b),
             Self::Push(item) => Self::push(vec, item),
             Self::Remove(index) => Self::remove(vec, index),
-            Self::ForEachMut(operation) => { Self::for_each_mut(vec, operation); Ok(()) },
+            Self::ForEachMut(operation) => { Self::for_each_mut(vec, &operation); Ok(()) },
         }
     }
 
@@ -88,7 +88,7 @@ impl<'a, T> VecOp<'a, T> {
         Ok(())
     }
 
-    fn for_each_mut(vec: &mut [T], operation: &'a dyn Fn(&mut T)) {
+    fn for_each_mut(vec: &mut [T], operation: &dyn Fn(&mut T)) {
         for item in vec {
             operation(item);
         }
@@ -107,7 +107,7 @@ pub enum MultiVecOp<'a, T> {
     /// # Errors
     /// * [`RunError::NotFound`] if no items match predicate.
     /// * [`RunError::TryReserveError`] if it can't make space for the item in the other side.
-    MoveFrom(Side, &'a dyn Fn(&T) -> bool),
+    MoveFrom(Side, Box<dyn Fn(&T) -> bool + 'a>),
 
     /// Moves item from either side matching predicate to other side.
     /// Searches left side first.
@@ -115,11 +115,11 @@ pub enum MultiVecOp<'a, T> {
     /// # Errors
     /// * [`RunError::NotFound`] if no items match predicate.
     /// * [`RunError::TryReserveError`] if it can't make space for the item in the other side.
-    Swap(&'a dyn Fn(&T) -> bool),
+    Swap(Box<dyn Fn(&'_ T) -> bool + 'a>),
 
     /// Applies the given operation on every element of both `Vec`s.
     /// Always returns `Ok`.
-    ForEachMut(&'a dyn Fn(&mut T)),
+    ForEachMut(Box<dyn Fn(&mut T)>),
 }
 
 impl<'a, T> MultiVecOp<'a, T> {
@@ -134,19 +134,19 @@ impl<'a, T> MultiVecOp<'a, T> {
             Self::MoveFrom(Side::Left, predicate) => Self::move_from(left, right, predicate),
             Self::MoveFrom(Side::Right, predicate) => Self::move_from(right, left, predicate),
             Self::Swap(predicate) => Self::swap(left, right, predicate),
-            Self::ForEachMut(operation) => { Self::for_each_mut(left, right, operation); Ok(()) },
+            Self::ForEachMut(operation) => { Self::for_each_mut(left, right, &operation); Ok(()) },
         }
     }
 
-    fn move_from(from: &mut Vec<T>, to: &mut Vec<T>, predicate: &'a dyn Fn(&T) -> bool) -> RunResult {
+    fn move_from(from: &mut Vec<T>, to: &mut Vec<T>, predicate: Box<dyn Fn(&T) -> bool + 'a>) -> RunResult {
         let index = from.iter().position(predicate).ok_or(RunError::NotFound)?;
         let item = from.remove(index);
 
         VecOp::Push(item).run(to)
     }
 
-    fn swap(left: &mut Vec<T>, right: &mut Vec<T>, predicate: &'a dyn Fn(&T) -> bool) -> RunResult {
-        let mut index: Option<usize> = left.iter().position(predicate);
+    fn swap(left: &mut Vec<T>, right: &mut Vec<T>, predicate: Box<dyn Fn(&T) -> bool + 'a>) -> RunResult {
+        let mut index: Option<usize> = left.iter().position(&predicate);
         let mut from_side = Side::Left;
         if index.is_none() {
             index = right.iter().position(predicate);
@@ -164,7 +164,7 @@ impl<'a, T> MultiVecOp<'a, T> {
         })
     }
 
-    fn for_each_mut(left: &mut [T], right: &mut [T], operation: &'a dyn Fn(&mut T)) {
+    fn for_each_mut(left: &mut [T], right: &mut [T], operation: &dyn Fn(&mut T)) {
         for item in left {
             operation(item);
         }

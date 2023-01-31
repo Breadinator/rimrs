@@ -6,7 +6,10 @@ use eframe::egui::{
 };
 use crate::{
     ModMetaData,
-    helpers::vec_ops::MultiVecOp,
+    helpers::{
+        vec_ops::MultiVecOp,
+        traits::LogIfErr,
+    },
 };
 use std::{
     sync::{
@@ -54,19 +57,13 @@ impl<'a> ModListingItem<'a> {
 
         self.package_id.clone()
     }
+
+    fn pid_matches_predicate(pid: String) -> Box<dyn for<'b> Fn(&'b ModListingItem<'_>) -> bool + 'a> {
+        Box::new(move |item: &ModListingItem| item.package_id == pid)
+    }
 }
 
-/*impl<'a> From<String> for ModListingItem<'a> {
-    fn from(package_id: String) -> Self {
-        Self {
-            package_id,
-            mod_meta_data: None,
-            selected: crate::helpers::arc_mutex_none(),
-        }
-    }
-}*/
-
-impl Widget for &ModListingItem<'_> {
+impl<'a> Widget for &ModListingItem<'a> {
     fn ui(self, ui: &mut Ui) -> Response {
         if let Ok(mut sel) = self.selected.try_lock() {
             let is_selected = (*sel).clone().map_or(false, |sel| self.package_id == sel);
@@ -74,6 +71,12 @@ impl Widget for &ModListingItem<'_> {
 
             if lab.clicked() {
                 *sel = Some(self.package_id.clone().to_lowercase());
+            }
+
+            if lab.double_clicked() {
+                let pid = self.package_id.clone();
+                self.tx.try_send(MultiVecOp::Swap(ModListingItem::pid_matches_predicate(pid)))
+                    .log_if_err();
             }
 
             lab
