@@ -20,6 +20,7 @@ use std::{
     collections::HashMap,
 };
 
+/// Todo: add visual buttons to reorder items
 #[derive(Debug, Clone)]
 pub struct ModListingItem<'a> {
     pub package_id: String,
@@ -61,6 +62,24 @@ impl<'a> ModListingItem<'a> {
     fn pid_matches_predicate(pid: String) -> Box<dyn for<'b> Fn(&'b ModListingItem<'_>) -> bool + 'a> {
         Box::new(move |item: &ModListingItem| item.package_id == pid)
     }
+
+    fn toggle_activated(&self) {
+        let pid = self.package_id.clone();
+        self.tx.try_send(MultiVecOp::Swap(ModListingItem::pid_matches_predicate(pid)))
+            .log_if_err();
+    }
+
+    fn move_up(&self) {
+        let pid = self.package_id.clone();
+        self.tx.try_send(MultiVecOp::MoveUp(Box::new(move |item| item.package_id == pid)))
+            .log_if_err();
+    }
+
+    fn move_down(&self) {
+        let pid = self.package_id.clone();
+        self.tx.try_send(MultiVecOp::MoveDown(Box::new(move |item| item.package_id == pid)))
+            .log_if_err();
+    }
 }
 
 impl<'a> Widget for &ModListingItem<'a> {
@@ -74,9 +93,17 @@ impl<'a> Widget for &ModListingItem<'a> {
             }
 
             if lab.double_clicked() {
-                let pid = self.package_id.clone();
-                self.tx.try_send(MultiVecOp::Swap(ModListingItem::pid_matches_predicate(pid)))
-                    .log_if_err();
+                self.toggle_activated();
+            }
+
+            // placeholder button
+            if lab.middle_clicked() {
+                self.move_up();
+            }
+
+            // placeholder button
+            if lab.secondary_clicked() {
+                self.move_down();
             }
 
             lab
