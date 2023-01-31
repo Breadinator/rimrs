@@ -1,23 +1,15 @@
+use thiserror::Error;
+
 pub mod about;
 pub mod mods_config;
 pub mod rimpy_config;
 pub mod ini;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ParseXMLError {
-    IOError(std::io::Error),
-    XMLError(xml::reader::Error),
-}
-
-impl From<std::io::Error> for ParseXMLError {
-    fn from(err: std::io::Error) -> Self {
-        Self::IOError(err)
-    }
-}
-
-impl From<xml::reader::Error> for ParseXMLError {
-    fn from(err: xml::reader::Error) -> Self {
-        Self::XMLError(err)
-    }
+    #[error("couldn't read file: {0}")]
+    IOError(#[from] std::io::Error),
+    #[error("invalid XML: {0}")]
+    XMLError(#[from] xml::reader::Error),
 }
 

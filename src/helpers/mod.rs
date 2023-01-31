@@ -7,6 +7,7 @@ use std::{
     },
 };
 use once_cell::sync::Lazy;
+use thiserror::Error;
 
 pub mod config;
 pub mod traits;
@@ -74,37 +75,18 @@ pub fn arc_mutex_none<T>() -> Arc<Mutex<Option<T>>> {
     Arc::new(Mutex::new(None))
 }
 
-static ID_COUNTER: Lazy<Arc<AtomicUsize>> = Lazy::new(|| Arc::new(AtomicUsize::new(0)));
+static ID_COUNTER: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
 
 #[must_use]
 pub fn fetch_inc_id() -> usize {
     ID_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ReadLineError {
-    IOError(std::io::Error),
-    FromUtf8Error(std::string::FromUtf8Error),
-}
-
-impl From<std::io::Error> for ReadLineError {
-    fn from(err: std::io::Error) -> Self {
-        Self::IOError(err)
-    }
-}
-
-impl From<std::string::FromUtf8Error> for ReadLineError {
-    fn from(err: std::string::FromUtf8Error) -> Self {
-        Self::FromUtf8Error(err)
-    }
-}
-
-impl std::fmt::Display for ReadLineError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self {
-            Self::IOError(err)       => err.fmt(f),
-            Self::FromUtf8Error(err) => err.fmt(f),
-        }
-    }
+    #[error("couldn't read file: {0}")]
+    IOError(#[from] std::io::Error),
+    #[error("invalid utf-8: {0}")]
+    FromUtf8Error(#[from] std::string::FromUtf8Error),
 }
 

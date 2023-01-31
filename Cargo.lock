@@ -1490,6 +1490,7 @@ dependencies = [
  "log",
  "once_cell",
  "open",
+ "thiserror",
  "xml-rs",
 ]
 

@@ -1,9 +1,13 @@
 use super::Side;
+use thiserror::Error;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum RunError {
+    #[error("given index out of bounds")]
     IndexOutOfBounds,
-    TryReserveError(std::collections::TryReserveError),
+    #[error("couldn't grow Vec: {0}")]
+    TryReserveError(#[from] std::collections::TryReserveError),
+    #[error("predicate didn't match any items")]
     NotFound,
 }
 pub type RunResult = Result<(), RunError>;

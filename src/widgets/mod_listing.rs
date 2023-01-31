@@ -14,12 +14,8 @@ use std::{
     sync::{
         Arc,
         Mutex,
-        atomic::AtomicUsize,
     },
 };
-use once_cell::sync::Lazy;
-
-static MOD_LISTING_COUNTER: Lazy<Arc<AtomicUsize>> = Lazy::new(|| Arc::new(AtomicUsize::new(0usize)));
 
 #[derive(Debug, Clone, Default)]
 pub struct ModListing {

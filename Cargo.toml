@@ -1,7 +1,7 @@
 [package]
 name = "rimrs"
 description = "RimWorld mod manager"
-version = "0.0.6"
+version = "0.0.7"
 edition = "2021"
 license = "Unlicense"
 homepage = "https://github.com/Breadinator/rimrs"
@@ -22,3 +22,4 @@ xml-rs = "0.8.4"
 open = "3.2"
 dotenv = "0.15.0"
 once_cell = "1.17.0"
+thiserror = "1.0.38"

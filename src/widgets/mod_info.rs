@@ -89,16 +89,21 @@ impl ModInfo {
             let w = ui.available_width() / 2.0;
             let desc_height = ui.available_height() - 100.0;
 
+            // name + authors
             TableBuilder::new(ui)
                 .column(Column::exact(w))
                 .column(Column::remainder())
                 .body(|mut body| {
-                    body.row(16.0, |mut row| {
+                    body.row(f32::NAN, |mut row| {
                         row.col(|ui| { ui.add(name_widget); });
                         row.col(|ui| { ui.add(authors_widget); });
                     });
                 });
+
+            // path
             ui.add(path_widget);
+
+            // desc
             if let Some(description_widget) = description_widget {
                 ui.group(|ui| {
                     ScrollArea::vertical()

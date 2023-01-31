@@ -4,6 +4,7 @@ use std::{
     io::Read,
 };
 use crate::helpers::{read_line, traits::LogIfErr, config::get_config_ini_path};
+use thiserror::Error;
 
 pub struct INIReader<'a> {
     reader: Box<dyn Read + 'a>,
@@ -94,10 +95,13 @@ pub struct INIKeyValuePair {
 }
 
 #[non_exhaustive]
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum INIError {
+    #[error("invalid INI syntax: {0}")]
     InvalidData(String),
-    IOError(std::io::Error),
-    VarError(std::env::VarError),
+    #[error("failed to read INI file: {0}")]
+    IOError(#[from] std::io::Error),
+    #[error("couldn't read env: {0}")]
+    VarError(#[from] std::env::VarError),
 }
 

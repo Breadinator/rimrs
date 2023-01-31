@@ -6,6 +6,7 @@ use std::{
     collections::HashMap,
     path::{PathBuf, Path},
 };
+use thiserror::Error;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, Default)]
@@ -86,21 +87,11 @@ impl TryFrom<INIReader<'_>> for RimPyConfig {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ReadRimPyConfigError {
-    VarError(std::env::VarError),
-    INIError(crate::serialization::ini::INIError),
-}
-
-impl From<std::env::VarError> for ReadRimPyConfigError {
-    fn from(err: std::env::VarError) -> Self {
-        Self::VarError(err)
-    }
-}
-
-impl From<crate::serialization::ini::INIError> for ReadRimPyConfigError {
-    fn from(err: crate::serialization::ini::INIError) -> Self {
-        Self::INIError(err)
-    }
+    #[error("couldn't read env variable: {0}")]
+    VarError(#[from] std::env::VarError),
+    #[error("{0}")]
+    INIError(#[from] crate::serialization::ini::INIError),
 }
 
