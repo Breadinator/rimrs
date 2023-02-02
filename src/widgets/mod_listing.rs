@@ -1,12 +1,7 @@
-use eframe::egui::{
-    Widget,
-    Ui,
-    Response,
-    ScrollArea,
-};
 use crate::{
     ModMetaData,
     widgets::ModListingItem,
+    traits::TableRower,
     helpers::{
         fetch_inc_id,
         vec_ops::MultiVecOp,
@@ -19,6 +14,13 @@ use std::{
         Mutex,
         mpsc::SyncSender,
     },
+};
+use eframe::egui::{
+    Widget,
+    Ui,
+    Response,
+    Layout,
+    Align,
 };
 
 #[derive(Debug, Clone)]
@@ -77,15 +79,22 @@ impl<'a> ModListing<'a> {
 
 impl Widget for &ModListing<'_> {
     fn ui(self, ui: &mut Ui) -> Response {
+        const BUTTON_WIDTH: f32 = 16.0;
+        const ROW_HEIGHT: f32 = 16.0;
+
         ui.push_id(self.id.as_str(), |ui| {
             if let Some(title) = self.title.as_ref() {
                 ui.heading(title);
             }
 
-            ScrollArea::vertical()
-                .show(ui, |ui| {
+            egui_extras::TableBuilder::new(ui)
+                .column(egui_extras::Column::exact(BUTTON_WIDTH))
+                .column(egui_extras::Column::exact(BUTTON_WIDTH))
+                .column(egui_extras::Column::remainder())
+                .cell_layout(Layout::left_to_right(Align::Min).with_main_wrap(false))
+                .body(|mut body| {
                     for item in &self.items {
-                        ui.add(item);
+                        body.row(ROW_HEIGHT, |r| item.table_row(r));
                     }
                 });
         }).response

@@ -90,3 +90,26 @@ pub enum ReadLineError {
     FromUtf8Error(#[from] std::string::FromUtf8Error),
 }
 
+/// Truncates a long `String`. If too long, it'll make it end in "...".
+///
+/// Very scuffed, because the font isn't monospace.
+/// Would be better to instead go `char`-by-`char` and calculate the actual width.
+#[must_use]
+pub fn truncate(s: &String, width: f32) -> String {
+    /// String to add to truncated strings.
+    const APPEND: &str = "...";
+
+    // should always be positive,
+    // and shouldn't truncate unless uuuuuuuuuuuuultra wide screen monitor lol
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    let max_chars: usize = (width / 7.0) as usize;
+
+    if s.len() > max_chars && max_chars > APPEND.len() {
+        let mut st: String = s.chars().take(max_chars - APPEND.len()).collect();
+        st.push_str(APPEND);
+        st
+    } else {
+        s.clone()
+    }
+}
+

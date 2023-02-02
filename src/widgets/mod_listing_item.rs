@@ -1,15 +1,10 @@
-use eframe::egui::{
-    Widget,
-    SelectableLabel,
-    Ui,
-    Response,
-};
 use crate::{
     ModMetaData,
-    helpers::{
-        vec_ops::MultiVecOp,
-        traits::LogIfErr,
+    traits::{
+        LogIfErr,
+        TableRower,
     },
+    helpers::vec_ops::MultiVecOp,
 };
 use std::{
     sync::{
@@ -19,6 +14,13 @@ use std::{
     },
     collections::HashMap,
 };
+use eframe::egui::{
+    Widget,
+    SelectableLabel,
+    Ui,
+    Response,
+};
+use egui_extras::TableRow;
 
 /// Todo: add visual buttons to reorder items
 #[derive(Debug, Clone)]
@@ -84,13 +86,46 @@ impl<'a> ModListingItem<'a> {
 
 impl<'a> Widget for &ModListingItem<'a> {
     fn ui(self, ui: &mut Ui) -> Response {
-        if let Ok(mut sel) = self.selected.try_lock() {
-            let is_selected = (*sel).clone().map_or(false, |sel| self.package_id == sel);
-            let lab = ui.add(SelectableLabel::new(is_selected, self.get_display_name()));
+        const BUTTON_WIDTH: f32 = 16.0;
+        const ROW_HEIGHT: f32 = 16.0;
 
-            if lab.clicked() {
-                *sel = Some(self.package_id.clone().to_lowercase());
+        ui.push_id(&self.package_id, |ui| {
+            egui_extras::TableBuilder::new(ui)
+                .column(egui_extras::Column::exact(BUTTON_WIDTH))
+                .column(egui_extras::Column::exact(BUTTON_WIDTH))
+                .column(egui_extras::Column::remainder())
+                .body(|mut body| body.row(ROW_HEIGHT, |r| self.table_row(r)));
+        }).response
+    }
+}
+
+impl TableRower for &ModListingItem<'_> {
+    fn table_row(self, mut row: TableRow) {
+        row.col(|ui| {
+            let up = ui.selectable_label(false, "U");
+            if up.clicked() {
+                self.move_up();
             }
+        });
+
+        row.col(|ui| {
+            let down = ui.selectable_label(false, "D");
+            if down.clicked() {
+                self.move_down();
+            }
+        });
+
+        row.col(|ui| {
+            let lab = if let Ok(mut sel) = self.selected.try_lock() {
+                let is_selected = (*sel).clone().map_or(false, |sel| self.package_id == sel);
+                let l = ui.add(SelectableLabel::new(is_selected, self.get_display_name()));
+                if l.clicked() {
+                    *sel = Some(self.package_id.clone().to_lowercase());
+                }
+                l
+            } else {
+                ui.selectable_label(false, self.get_display_name())
+            };
 
             if lab.double_clicked() {
                 self.toggle_activated();
@@ -105,11 +140,7 @@ impl<'a> Widget for &ModListingItem<'a> {
             if lab.secondary_clicked() {
                 self.move_down();
             }
-
-            lab
-        } else {
-            ui.selectable_label(false, self.get_display_name())
-        }
+        });
     }
 }
 

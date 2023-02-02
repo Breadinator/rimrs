@@ -35,6 +35,10 @@ impl ToStringOrEmpty for Option<PathBuf> {
     }
 }
 
+pub trait TableRower {
+    fn table_row(self, row: egui_extras::TableRow);
+}
+
 /* mover traits */
 
 pub type MoverPredicate<'a, T> = Box<dyn Fn(&'_ T) -> bool + 'a>;
