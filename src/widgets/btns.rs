@@ -12,11 +12,14 @@ impl Default for Btns<'_> {
     fn default() -> Self {
         Self(vec![
              Button::clear(),
+             Button::sort(),
+             Button::save(),
+             Button::run(),
         ])
     }
 }
 
-impl Widget for &Btns<'_> {
+impl<'a> Widget for &'a Btns<'a> {
     fn ui(self, ui: &mut Ui) -> Response {
         ui.scope(|ui| {
             for btn in &self.0 {

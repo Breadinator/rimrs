@@ -8,7 +8,7 @@ mod mod_info;
 pub use mod_info::ModInfo;
 
 mod button;
-pub use button::Button;
+pub use button::{ Button, ButtonBuilder };
 
 mod btns;
 pub use btns::Btns;
