@@ -74,7 +74,7 @@ fn row_1(row: &mut TableRow, version: &String) {
 
 fn row_2(row: &mut TableRow, conf: &Arc<RimPyConfig>) {
     row.col(|ui| {
-        open_button(ui, "Game folder", &conf.folders.game_folder);
+        open_button(ui, "Game folder", &conf.folders.game_folder, Some("Open folder containing RimWorld"));
     });
     row.col(|ui| {
         ui.label(conf.folders.game_folder.to_string_or_empty());
@@ -83,7 +83,7 @@ fn row_2(row: &mut TableRow, conf: &Arc<RimPyConfig>) {
 
 fn row_3(row: &mut TableRow, conf: &Arc<RimPyConfig>) {
     row.col(|ui| {
-        open_button(ui, "Config folder", &conf.folders.config_folder);
+        open_button(ui, "Config folder", &conf.folders.config_folder, Some("Open the RimWorld game config folder"));
     });
     row.col(|ui| {
         ui.label(conf.folders.config_folder.to_string_or_empty());
@@ -92,7 +92,7 @@ fn row_3(row: &mut TableRow, conf: &Arc<RimPyConfig>) {
 
 fn row_4(row: &mut TableRow, conf: &Arc<RimPyConfig>) {
      row.col(|ui| {
-        open_button(ui, "Steam mods", &conf.folders.steam_mods);
+        open_button(ui, "Steam mods", &conf.folders.steam_mods, Some("Open folder where steam mods are stored"));
     });
     row.col(|ui| {
         ui.label(conf.folders.steam_mods.to_string_or_empty());
@@ -101,7 +101,7 @@ fn row_4(row: &mut TableRow, conf: &Arc<RimPyConfig>) {
 
 fn row_5(row: &mut TableRow, conf: &Arc<RimPyConfig>) {
     row.col(|ui| {
-        open_button(ui, "Local mods", &conf.folders.local_mods);
+        open_button(ui, "Local mods", &conf.folders.local_mods, Some("Open folder where local mods are stored (Mods folder)"));
     });
     row.col(|ui| {
         ui.label(conf.folders.local_mods.to_string_or_empty());
@@ -114,14 +114,23 @@ pub fn open_rimpy_button(ui: &mut Ui) {
         crate::helpers::config::get_config_dir().map(open::that)
             .log_if_err();
     }
+    if settings_btn.hovered {
+        crate::HINT_PANEL.try_set_hint(String::from("Open folder where RimPy stores its config files")).ok();
+    }
 }
 
-pub fn open_button(ui: &mut Ui, lab: &str, path: &Option<PathBuf>) -> Response {
+pub fn open_button(ui: &mut Ui, lab: &str, path: &Option<PathBuf>, hint: Option<&str>) -> Response {
     let mut btn = ui.button(lab);
     if let Some(path) = path {
         if btn.clicked() {
             open::that(path)
                 .log_if_err();
+        }
+
+        if btn.hovered() {
+            if let Some(hint) = hint {
+                crate::HINT_PANEL.try_set_hint(String::from(hint)).ok();
+            }
         }
     } else {
         btn.enabled = false;

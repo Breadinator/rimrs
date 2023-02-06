@@ -15,7 +15,7 @@ use crate::{
         ModListing,
         ModListingItem,
         ModInfo,
-        Btns,
+        ButtonsContainer,
     },
     helpers::{
         arc_mutex_none,
@@ -40,7 +40,7 @@ pub struct ModsPanel<'a> {
     inactive: ModListing<'a>,
     active: ModListing<'a>,
     mod_info_widget: ModInfo,
-    btns: Btns<'a>,
+    btns: ButtonsContainer<'a>,
     rimpy_config: Arc<RimPyConfig>,
     mods_config: Arc<RwLock<ModsConfig>>,
     rx: Receiver<MultiVecOp<'a, ModListingItem<'a>>>,
@@ -60,14 +60,16 @@ impl ModsPanel<'_> {
 
         let mod_info_widget = ModInfo::new(mods.mods.clone(), selected);
 
+        let btns = ButtonsContainer::generate();
+
         Self {
             mods,
             inactive,
             active,
             mod_info_widget,
+            btns,
             rimpy_config,
             mods_config,
-            btns: Btns::default(),
             rx,
         }
     }

@@ -10,8 +10,8 @@ pub use mod_info::ModInfo;
 mod button;
 pub use button::{ Button, ButtonBuilder };
 
-mod btns;
-pub use btns::Btns;
+mod buttons_container;
+pub use buttons_container::ButtonsContainer;
 
 mod path_label;
 pub use path_label::PathLabel;

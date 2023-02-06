@@ -6,9 +6,17 @@ use eframe::egui::{
 use super::Button;
 
 #[derive(Debug)]
-pub struct Btns<'a>(Vec<Button<'a>>);
+pub struct ButtonsContainer<'a>(Vec<Button<'a>>);
 
-impl Default for Btns<'_> {
+impl ButtonsContainer<'_> {
+    /// Creates the various buttons that appear to the right of the active mods listing.
+    #[must_use]
+    pub fn generate() -> Self {
+        Self::default()
+    }
+}
+
+impl Default for ButtonsContainer<'_> {
     fn default() -> Self {
         Self(vec![
              Button::clear(),
@@ -19,7 +27,7 @@ impl Default for Btns<'_> {
     }
 }
 
-impl<'a> Widget for &'a Btns<'a> {
+impl<'a> Widget for &ButtonsContainer<'a> {
     fn ui(self, ui: &mut Ui) -> Response {
         ui.scope(|ui| {
             for btn in &self.0 {

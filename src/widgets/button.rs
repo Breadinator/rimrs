@@ -5,6 +5,7 @@ use eframe::egui::{
     Response,
 };
 
+#[derive(Default)]
 pub struct Button<'a> {
     label: &'a str,
     action: Option<Box<dyn Fn() + 'a>>,
@@ -92,9 +93,10 @@ impl<'a> Widget for &Button<'a> {
             }
         }
 
+        // Doesn't trigger hover when disabled; might have to implement own hover logic if no given workaround?
         if resp.hovered() {
-            if let Some(hint) = self.hint {
-                log::debug!("Tried to show hint, but unimplemented lol.\n        Hint: {hint}");
+            if let Some(hint) = self.hint.as_ref() {
+                crate::HINT_PANEL.try_set_hint(String::from(*hint)).ok();
             }
         }
 
@@ -144,7 +146,7 @@ impl<'a> ButtonBuilder<'a> {
     }
 }
 
-impl<'a, 'b> From<ButtonBuilder<'a>> for Button<'a> {
+impl<'a> From<ButtonBuilder<'a>> for Button<'a> {
     fn from(builder: ButtonBuilder<'a>) -> Self {
          Button {
             label: builder.label,
