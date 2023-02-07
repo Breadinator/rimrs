@@ -4,13 +4,14 @@ use eframe::egui::{
     Ui,
     Response,
 };
+use std::sync::mpsc::SyncSender;
 
-#[derive(Default)]
 pub struct Button<'a> {
     label: &'a str,
     action: Option<Box<dyn Fn() + 'a>>,
     hint: Option<&'a str>,
     is_enabled_fn: Option<Box<dyn Fn() -> bool + 'a>>,
+    hint_tx: SyncSender<String>,
 }
 
 impl std::fmt::Debug for Button<'_> {
@@ -21,8 +22,8 @@ impl std::fmt::Debug for Button<'_> {
 
 impl<'a> Button<'a> {
     #[must_use]
-    pub fn builder(label: &'a str) -> ButtonBuilder {
-        ButtonBuilder::new(label)
+    pub fn builder(label: &'a str, hint_tx: SyncSender<String>) -> ButtonBuilder {
+        ButtonBuilder::new(label, hint_tx)
     }
 
     /// Checks if the button should be enabled, using the function stored in `is_enabled_fn`.
@@ -34,34 +35,34 @@ impl<'a> Button<'a> {
     }
 
     #[must_use]
-    pub fn clear() -> Self {
+    pub fn clear(hint_tx: SyncSender<String>) -> Self {
         let action = Box::new(|| log::debug!("Unimplemented 😇")) as Box<dyn Fn() + 'a>;
         let hint = "Remove all mods, except Core and DLCs";
 
-        Self::builder("Clear")
+        Self::builder("Clear", hint_tx)
             .action(action)
             .hint(hint)
             .build()
     }
 
     #[must_use]
-    pub fn sort() -> Self {
+    pub fn sort(hint_tx: SyncSender<String>) -> Self {
         let action = Box::new(|| {}) as Box<dyn Fn() + 'a>;
         let hint = "Auto-sort mods";
 
-        Self::builder("Sort")
+        Self::builder("Sort", hint_tx)
             .action(action)
             .hint(hint)
             .build()
     }
 
     #[must_use]
-    pub fn save() -> Self {
+    pub fn save(hint_tx: SyncSender<String>) -> Self {
         let action = Box::new(|| {}) as Box<dyn Fn() + 'a>;
         let hint = "Save the mod list to ModsConfig.xml file (applies changes to game mod list)";
         let is_enabled = Box::new(|| false) as Box<dyn Fn() -> bool + 'a>;
 
-        Self::builder("Save")
+        Self::builder("Save", hint_tx)
             .action(action)
             .hint(hint)
             .is_enabled_fn(is_enabled)
@@ -69,12 +70,12 @@ impl<'a> Button<'a> {
     }
 
     #[must_use]
-    pub fn run() -> Self {
+    pub fn run(hint_tx: SyncSender<String>) -> Self {
         let action = Box::new(|| {}) as Box<dyn Fn() + 'a>;
         let hint = "Run the game";
         let is_enabled = Box::new(|| false) as Box<dyn Fn() -> bool>;
 
-        Self::builder("Run")
+        Self::builder("Run", hint_tx)
             .action(action)
             .hint(hint)
             .is_enabled_fn(is_enabled)
@@ -95,8 +96,8 @@ impl<'a> Widget for &Button<'a> {
 
         // Doesn't trigger hover when disabled; might have to implement own hover logic if no given workaround?
         if resp.hovered() {
-            if let Some(hint) = self.hint.as_ref() {
-                crate::HINT_PANEL.try_set_hint(String::from(*hint)).ok();
+            if let Some(hint) = self.hint {
+                self.hint_tx.try_send(String::from(hint)).ok();
             }
         }
 
@@ -105,20 +106,23 @@ impl<'a> Widget for &Button<'a> {
 }
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Default)]
 pub struct ButtonBuilder<'a> {
     label: &'a str,
     action: Option<Box<dyn Fn() + 'a>>,
     hint: Option<&'a str>,
     is_enabled_fn: Option<Box<dyn Fn() -> bool + 'a>>,
+    hint_tx: SyncSender<String>,
 }
 
 impl<'a> ButtonBuilder<'a> {
     #[must_use]
-    pub fn new(label: &'a str) -> Self {
+    pub fn new(label: &'a str, hint_tx: SyncSender<String>) -> Self {
         Self {
             label,
-            ..Default::default()
+            action: None,
+            hint: None,
+            is_enabled_fn: None,
+            hint_tx,
         }
     }
 
@@ -153,6 +157,7 @@ impl<'a> From<ButtonBuilder<'a>> for Button<'a> {
             action: builder.action,
             hint: builder.hint,
             is_enabled_fn: builder.is_enabled_fn,
+            hint_tx: builder.hint_tx,
         }
     }
 }

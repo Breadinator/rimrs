@@ -27,17 +27,13 @@ use serialization::{
     rimpy_config::RimPyConfig,
     mods_config::ModsConfig,
 };
-use std::sync::{Arc, RwLock};
-use once_cell::sync::Lazy;
+use std::sync::{
+    Arc,
+    RwLock,
+    mpsc::sync_channel,
+};
 
 const CHANNEL_BUFFER: usize = 32;
-
-/// Global container for the [`panels::HintPanel`].
-///
-/// I hate this but passing references or channels txs around would be pain.
-/// Might be better to use a channel so at least it's less awful, but then would have to use a
-/// [`OnceCell`] or something to store a tx and have [`RimRs`] contain the rx.
-pub static HINT_PANEL: Lazy<panels::HintPanel> = Lazy::new(panels::HintPanel::default);
 
 #[non_exhaustive]
 #[derive(Debug)]
@@ -45,6 +41,7 @@ pub struct RimRs<'a> {
     pub rimpy_config: Arc<RimPyConfig>,
     pub mods_config: Arc<RwLock<ModsConfig>>,
     paths_panel: panels::PathsPanel,
+    hint_panel: panels::HintPanel,
     mods_panel: panels::ModsPanel<'a>,
 }
 
@@ -57,6 +54,9 @@ impl<'a> RimRs<'a> {
     #[must_use]
     #[allow(unused_variables)]
     pub fn new(cc: &CreationContext<'_>) -> Self {
+        let (hint_tx, hint_rx) = sync_channel(3);
+        let hint_panel = panels::HintPanel::new(hint_rx);
+
         let rimpy_config_unwrapped = RimPyConfig::from_file().unwrap();
         let mod_list = ModList::try_from(&rimpy_config_unwrapped).unwrap();
         let rimpy_config = Arc::new(rimpy_config_unwrapped);
@@ -68,13 +68,15 @@ impl<'a> RimRs<'a> {
 
         let version = mods_config.read().unwrap().version.clone().unwrap_or(String::from("???"));
 
-        let paths_panel = panels::PathsPanel::new(rimpy_config.clone(), version);
-        let mods_panel = panels::ModsPanel::new::<CHANNEL_BUFFER>(rimpy_config.clone(), mods_config.clone(), mod_list);
+        let paths_panel = panels::PathsPanel::new(rimpy_config.clone(), version, hint_tx.clone());
+        let mods_panel = panels::ModsPanel::new::<CHANNEL_BUFFER>(rimpy_config.clone(), mods_config.clone(), mod_list, hint_tx);
+
 
         Self {
             rimpy_config,
             mods_config,
             paths_panel,
+            hint_panel,
             mods_panel,
         }
     }
@@ -102,7 +104,7 @@ impl<'a> App for RimRs<'a> {
     #[allow(unused_variables)]
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         TopBottomPanel::top("paths_panel").show(ctx, |ui| panel_using_widget(ui, &mut self.paths_panel));
-        TopBottomPanel::bottom("hint_panel").show(ctx, |ui| panel_using_widget(ui, &*HINT_PANEL));
+        TopBottomPanel::bottom("hint_panel").show(ctx, |ui| panel_using_widget(ui, &mut self.hint_panel));
         CentralPanel::default().show(ctx, |ui| panel_using_widget(ui, &mut self.mods_panel));
     }
 }

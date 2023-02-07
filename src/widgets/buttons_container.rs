@@ -4,6 +4,7 @@ use eframe::egui::{
     Response,
 };
 use super::Button;
+use std::sync::mpsc::SyncSender;
 
 #[derive(Debug)]
 pub struct ButtonsContainer<'a>(Vec<Button<'a>>);
@@ -11,18 +12,12 @@ pub struct ButtonsContainer<'a>(Vec<Button<'a>>);
 impl ButtonsContainer<'_> {
     /// Creates the various buttons that appear to the right of the active mods listing.
     #[must_use]
-    pub fn generate() -> Self {
-        Self::default()
-    }
-}
-
-impl Default for ButtonsContainer<'_> {
-    fn default() -> Self {
+    pub fn generate(hint_tx: SyncSender<String>) -> Self {
         Self(vec![
-             Button::clear(),
-             Button::sort(),
-             Button::save(),
-             Button::run(),
+             Button::clear(hint_tx.clone()),
+             Button::sort(hint_tx.clone()),
+             Button::save(hint_tx.clone()),
+             Button::run(hint_tx),
         ])
     }
 }

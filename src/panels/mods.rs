@@ -28,6 +28,7 @@ use std::sync::{
     RwLock,
     mpsc::{
         sync_channel,
+        SyncSender,
         Receiver,
         TryRecvError,
     },
@@ -47,7 +48,7 @@ pub struct ModsPanel<'a> {
 }
 
 impl ModsPanel<'_> {
-    pub fn new<const SIZE: usize>(rimpy_config: Arc<RimPyConfig>, mods_config: Arc<RwLock<ModsConfig>>, mods: ModList) -> Self {
+    pub fn new<const SIZE: usize>(rimpy_config: Arc<RimPyConfig>, mods_config: Arc<RwLock<ModsConfig>>, mods: ModList, hint_tx: SyncSender<String>) -> Self {
         let selected = arc_mutex_none::<String>();
         let (tx, rx) = sync_channel(SIZE);
 
@@ -60,7 +61,7 @@ impl ModsPanel<'_> {
 
         let mod_info_widget = ModInfo::new(mods.mods.clone(), selected);
 
-        let btns = ButtonsContainer::generate();
+        let btns = ButtonsContainer::generate(hint_tx);
 
         Self {
             mods,
