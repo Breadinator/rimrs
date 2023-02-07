@@ -36,36 +36,36 @@ impl PathsPanel {
             hint_tx,
         }
     }
-
-    fn build_table(ui: &mut Ui, conf: &Arc<RimPyConfig>, version: &String, hint_tx: &SyncSender<String>) -> Response {
-        ui.scope(|ui| {
-            TableBuilder::new(ui)
-                .column(Column::auto())
-                .column(Column::remainder())
-                .column(Column::auto())
-                .body(|mut body| {
-                    const H: f32 = 24.0;
-
-                    macro_rules! r {
-                        ($func:ident) => {
-                            body.row(H, |mut row| $func(&mut row, conf, hint_tx))
-                        }
-                    }
-
-                    body.row(H, |mut row| row_1(&mut row, version, hint_tx));
-                    r!(row_2);
-                    r!(row_3);
-                    r!(row_4);
-                    r!(row_5);
-                });
-        }).response
-    }
 }
 
 impl Widget for &mut PathsPanel {
     fn ui(self, ui: &mut Ui) -> Response {
-        PathsPanel::build_table(ui, &self.rimpy_config, &self.version, &self.hint_tx)
+        build_table(ui, &self.rimpy_config, &self.version, &self.hint_tx)
     }
+}
+
+fn build_table(ui: &mut Ui, conf: &Arc<RimPyConfig>, version: &String, hint_tx: &SyncSender<String>) -> Response {
+    ui.scope(|ui| {
+        TableBuilder::new(ui)
+            .column(Column::auto())
+            .column(Column::remainder())
+            .column(Column::auto())
+            .body(|mut body| {
+                const H: f32 = 24.0;
+
+                macro_rules! r {
+                    ($func:ident) => {
+                        body.row(H, |mut row| $func(&mut row, conf, hint_tx))
+                    }
+                }
+
+                body.row(H, |mut row| row_1(&mut row, version, hint_tx));
+                r!(row_2);
+                r!(row_3);
+                r!(row_4);
+                r!(row_5);
+            });
+    }).response
 }
 
 fn row_1(row: &mut TableRow, version: &String, hint_tx: &SyncSender<String>) {
