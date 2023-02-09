@@ -6,10 +6,9 @@ use eframe::egui::{
 use std::{
     sync::mpsc::Receiver,
     time::{
-        Instant,
+        SystemTime,
         Duration,
     },
-    collections::VecDeque,
 };
 
 const UPDATE_DURATION: Duration = Duration::from_millis(500); // 0.5s
@@ -18,8 +17,8 @@ const UPDATE_DURATION: Duration = Duration::from_millis(500); // 0.5s
 pub struct HintPanel {
     pub hint: Option<String>,
     rx: Receiver<String>,
-    last_updated: Option<Instant>,
-    buf: VecDeque<String>,
+    last_updated: Option<SystemTime>,
+    buf: Option<String>,
 }
 
 impl HintPanel {
@@ -29,28 +28,30 @@ impl HintPanel {
             hint: None,
             rx,
             last_updated: None,
-            buf: VecDeque::new(),
+            buf: None,
         }
     }
 
     pub fn update(&mut self) {
         while let Ok(hint) = self.rx.try_recv() {
-            self.buf.push_back(hint);
-            // self.hint = Some(hint);
+            self.buf = Some(hint);
         }
 
-        if self.buf.is_empty() {
+        if self.buf.is_none() || self.buf == self.hint {
             return;
         }
 
-        if let Some(last_updated) = self.last_updated.as_ref() {
-            if last_updated.elapsed() > UPDATE_DURATION {
-                self.hint = self.buf.pop_front();
-                self.last_updated = Some(Instant::now());
+        if let Some(last_updated) = self.last_updated.as_mut() {
+            log::debug!("{:?}", last_updated.elapsed());
+            if last_updated.elapsed().unwrap_or(UPDATE_DURATION) >= UPDATE_DURATION {
+                self.hint = self.buf.take();
+                self.buf = None;
+                *last_updated = SystemTime::now();
             }
         } else {
-            self.hint = self.buf.pop_front();
-            self.last_updated = Some(Instant::now());
+            self.hint = self.buf.take();
+            self.buf = None;
+            self.last_updated = Some(SystemTime::now());
         }
     }
 }
