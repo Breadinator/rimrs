@@ -88,8 +88,8 @@ impl TryFrom<&Path> for ModsConfig {
     }
 }
 
-impl From<ModsConfig> for String {
-    fn from(mods_config: ModsConfig) -> Self {
+impl From<&ModsConfig> for String {
+    fn from(mods_config: &ModsConfig) -> Self {
         let mut out = String::from("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<ModsConfigData>\n");
 
         if let Some(version) = &mods_config.version {
@@ -97,18 +97,24 @@ impl From<ModsConfig> for String {
         }
         if !mods_config.activeMods.is_empty() {
             out.push_str("    <activeMods>\n");
-            out.push_str(&fold_lis(mods_config.activeMods, 2));
+            out.push_str(&fold_lis(&mods_config.activeMods, 2));
             out.push_str("    </activeMods>\n");
         }
         if !mods_config.knownExpansions.is_empty() {
             out.push_str("    <knownExpansions>\n");
-            out.push_str(&fold_lis(mods_config.knownExpansions, 2));
+            out.push_str(&fold_lis(&mods_config.knownExpansions, 2));
             out.push_str("    </knownExpansions>\n");
         }
 
         out.push_str("</ModsConfigData>");
 
         out
+    }
+}
+
+impl From<&ModsConfig> for Vec<u8> {
+    fn from(mods_config: &ModsConfig) -> Self {
+        String::from(mods_config).into_bytes()
     }
 }
 

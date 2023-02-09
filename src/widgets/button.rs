@@ -4,8 +4,20 @@ use eframe::egui::{
     Ui,
     Response,
 };
-use std::sync::mpsc::SyncSender;
-use crate::traits::LogIfErr;
+use std::sync::{
+    Arc,
+    Mutex,
+    mpsc::SyncSender,
+};
+use crate::{
+    traits::{
+        LogIfErr,
+        LockIgnorePoisoned,
+    },
+    widgets::ModListing,
+    writer_thread,
+    CHANGED_ACTIVE_MODS,
+};
 
 pub struct Button<'a> {
     label: &'a str,
@@ -23,7 +35,7 @@ impl std::fmt::Debug for Button<'_> {
 
 impl<'a> Button<'a> {
     #[must_use]
-    pub fn builder(label: &'a str, hint_tx: SyncSender<String>) -> ButtonBuilder {
+    pub fn builder(label: &'a str, hint_tx: SyncSender<String>) -> ButtonBuilder<'a> {
         ButtonBuilder::new(label, hint_tx)
     }
 
@@ -48,7 +60,7 @@ impl<'a> Button<'a> {
 
     #[must_use]
     pub fn sort(hint_tx: SyncSender<String>) -> Self {
-        let action = Box::new(|| {}) as Box<dyn Fn() + 'a>;
+        let action = Box::new(|| log::debug!("Unimplemented 😇")) as Box<dyn Fn() + 'a>;
         let hint = "Auto-sort mods";
 
         Self::builder("Sort", hint_tx)
@@ -58,12 +70,18 @@ impl<'a> Button<'a> {
     }
 
     #[must_use]
-    pub fn save(hint_tx: SyncSender<String>, writer_thread_tx: SyncSender<crate::writer_thread::Message>) -> Self {
+    pub fn save(hint_tx: SyncSender<String>, writer_thread_tx: SyncSender<crate::writer_thread::Message>, active_mod_listing_ref: Arc<Mutex<ModListing<'a>>>) -> Self {
         let action = Box::new(move || {
-            writer_thread_tx.try_send(crate::writer_thread::Message::Write(vec![])).log_if_err();
+            log::info!("pre-lock");
+            let active_mods: Vec<String> = Vec::from(&*active_mod_listing_ref.clone().lock_ignore_poisoned());
+            log::info!("post-lock");
+            match writer_thread_tx.try_send(writer_thread::Message::SetActiveMods(active_mods)) {
+                Ok(_) => { writer_thread_tx.try_send(writer_thread::Message::Save).log_if_err(); },
+                Err(err) => log::error!("{err}"),
+            }
         }) as Box<dyn Fn() + 'a>;
         let hint = "Save the mod list to ModsConfig.xml file (applies changes to game mod list)";
-        let is_enabled = Box::new(|| true) as Box<dyn Fn() -> bool + 'a>;
+        let is_enabled = Box::new(|| CHANGED_ACTIVE_MODS.check()) as Box<dyn Fn() -> bool + 'a>;
 
         Self::builder("Save", hint_tx)
             .action(action)
@@ -76,7 +94,7 @@ impl<'a> Button<'a> {
     pub fn run(hint_tx: SyncSender<String>) -> Self {
         let action = Box::new(|| {}) as Box<dyn Fn() + 'a>;
         let hint = "Run the game";
-        let is_enabled = Box::new(|| false) as Box<dyn Fn() -> bool>;
+        let is_enabled = Box::new(|| !CHANGED_ACTIVE_MODS.check()) as Box<dyn Fn() -> bool>;
 
         Self::builder("Run", hint_tx)
             .action(action)

@@ -69,7 +69,7 @@ impl<'a, T> VecOp<'a, T> {
     ///
     /// # Errors
     /// See [`VecOps`] variant documentation.
-    pub fn run<'v>(self, mut vec: VecMutAccessor<'v, T>) -> RunResult {
+    pub fn run(self, mut vec: VecMutAccessor<'_, T>) -> RunResult {
         match self {
             Self::Swap(a, b) => Self::swap(vec, a, b),
             Self::Push(item) => Self::push(vec, item),
@@ -190,12 +190,12 @@ impl<'a, T> MultiVecOp<'a, T> {
     fn for_each_mut(left: VecMutAccessor<'_, T>, right: VecMutAccessor<'_, T>, operation: &dyn Fn(&mut T)) {
         match left {
             VecMutAccessor::ExclRef(vec) => for item in &mut vec.iter_mut() { operation(item); },
-            VecMutAccessor::ArcMutex(armu) => for item in armu.lock().unwrap_or_else(|psn| psn.into_inner()).iter_mut() { operation(item); },
+            VecMutAccessor::ArcMutex(armu) => for item in armu.lock_ignore_poisoned().iter_mut() { operation(item); },
         }
 
         match right {
             VecMutAccessor::ExclRef(vec) => for item in &mut vec.iter_mut() { operation(item); },
-            VecMutAccessor::ArcMutex(armu) => for item in armu.lock().unwrap_or_else(|psn| psn.into_inner()).iter_mut() { operation(item); },
+            VecMutAccessor::ArcMutex(armu) => for item in armu.lock_ignore_poisoned().iter_mut() { operation(item); },
         }
     }
 

@@ -51,7 +51,7 @@ impl ModsPanel<'_> {
         mods_config: Arc<ModsConfig>,
         mods: ModList,
         hint_tx: SyncSender<String>,
-        writer_thread_tx: SyncSender<crate::writer_thread::Message>
+        writer_thread_tx: SyncSender<crate::writer_thread::Message>,
     ) -> Self {
         let selected = Arc::new(Mutex::new(None));
         let (tx, rx) = sync_channel(SIZE);
@@ -60,17 +60,17 @@ impl ModsPanel<'_> {
         let inactive_pids = mods.package_ids().map(|pids| pids.into_iter().filter(|pid| !active_mods.contains(pid)).collect())
             .unwrap_or_default();
 
-        let active = ModListing::new(active_mods, &mods.mods, &selected, Some(String::from("Active")), tx.clone());
+        let active = Arc::new(Mutex::new(ModListing::new(active_mods, &mods.mods, &selected, Some(String::from("Active")), tx.clone())));
         let inactive = ModListing::new(inactive_pids, &mods.mods, &selected, Some(String::from("Inactive")), tx);
 
         let mod_info_widget = ModInfo::new(mods.mods.clone(), selected);
 
-        let btns = ButtonsContainer::generate(hint_tx, writer_thread_tx);
+        let btns = ButtonsContainer::generate(hint_tx, writer_thread_tx, active.clone());
 
         Self {
             mods,
             inactive,
-            active: Arc::new(Mutex::new(active)),
+            active,
             mod_info_widget,
             btns,
             rimpy_config,
@@ -100,7 +100,9 @@ impl ModsPanel<'_> {
         let mod_listing_width = 2.5 * w;
         let h = ui.available_height();
 
-        let active_guard = self.active.lock().unwrap_or_else(|psn| psn.into_inner());
+        // causes a deadlock if we don't clone, could instead use a `Cell` or something seeing as
+        // it should be on the same thread anyways and then clone when passing to `writer_thread`
+        let active_cloned = self.active.lock_ignore_poisoned().clone();
 
         TableBuilder::new(ui)
             .column(Column::exact(mod_info_width))
@@ -110,7 +112,7 @@ impl ModsPanel<'_> {
             .body(|mut body| body.row(h, |mut row| {
                 row.col(|ui| {ui.add(&mut self.mod_info_widget);});
                 row.col(|ui| {ui.add(&self.inactive);});
-                row.col(|ui| {ui.add(&*active_guard);});
+                row.col(|ui| {ui.add(&active_cloned);});
                 row.col(|ui| {ui.add(&self.btns);});
             }));
         });

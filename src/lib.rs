@@ -64,6 +64,7 @@ impl<'a> RimRs<'a> {
         let (hint_tx, hint_rx) = sync_channel(3);
         let hint_panel = panels::HintPanel::new(hint_rx);
 
+
         let rimpy_config_unwrapped = RimPyConfig::from_file().unwrap();
         let mod_list = ModList::try_from(&rimpy_config_unwrapped).unwrap();
         let rimpy_config = Arc::new(rimpy_config_unwrapped);

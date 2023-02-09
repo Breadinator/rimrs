@@ -4,6 +4,8 @@ use std::{
     sync::{
         Mutex,
         MutexGuard,
+        TryLockError,
+        PoisonError,
     },
 };
 use thiserror::Error;
@@ -144,19 +146,24 @@ pub struct TryLockIgnorePoisonedError;
 
 pub trait LockIgnorePoisoned<T> {
     fn lock_ignore_poisoned(&self) -> MutexGuard<'_, T>;
+
+    /// Tries to acquire the lock without blocking the thread.
+    ///
+    /// # Errors
+    /// Returns [`Err`] if the lock is already held.
     fn try_lock_ignore_poisoned(&self) -> Result<MutexGuard<'_, T>, TryLockIgnorePoisonedError>;
 }
 
 impl<T> LockIgnorePoisoned<T> for Mutex<T> {
     fn lock_ignore_poisoned(&self) -> MutexGuard<'_, T> {
-        self.lock().unwrap_or_else(|psn| psn.into_inner())
+        self.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
     fn try_lock_ignore_poisoned(&self) -> Result<MutexGuard<'_, T>, TryLockIgnorePoisonedError> {
         match self.try_lock() {
             Ok(guard) => Ok(guard),
-            Err(std::sync::TryLockError::Poisoned(psn)) => Ok(psn.into_inner()),
-            Err(std::sync::TryLockError::WouldBlock) => Err(TryLockIgnorePoisonedError),
+            Err(TryLockError::Poisoned(psn)) => Ok(psn.into_inner()),
+            Err(TryLockError::WouldBlock) => Err(TryLockIgnorePoisonedError),
         }
     }
 }

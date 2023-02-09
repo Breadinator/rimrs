@@ -127,7 +127,7 @@ fn serialize_mods_config() {
            String::from("ludeon.rimworld.biotech"),
         ],
     };
-    let serialized = String::from(mods_config);
+    let serialized = String::from(&mods_config);
 
     assert_eq!(serialized, r#"<?xml version="1.0" encoding="utf-8"?>
 <ModsConfigData>
@@ -179,7 +179,7 @@ fn deserialize_serialize_mods_config() {
 </ModsConfigData>"#;
 
      let deserialized = ModsConfig::try_from(data.as_bytes()).unwrap();
-     let reserialized = String::from(deserialized);
+     let reserialized = String::from(&deserialized);
 
      assert_eq!(data, reserialized);
 }

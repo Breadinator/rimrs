@@ -43,16 +43,16 @@ pub fn strip_bom(bytes: &[u8]) -> &[u8] {
 /// use rimrs::helpers::fold_lis;
 ///
 /// let lis = vec!["a", "b"];
-/// let folded = fold_lis(lis, 1);
+/// let folded = fold_lis(&lis, 1);
 ///
 /// assert_eq!(&folded, "    <li>a</li>\n    <li>b</li>\n");
 /// ```
 #[must_use]
-pub fn fold_lis<S: AsRef<str>>(items: Vec<S>, indenting: usize) -> String {
+pub fn fold_lis<S: AsRef<str>>(items: &[S], indenting: usize) -> String {
     let single_indent = "    ";
     let indent = single_indent.repeat(indenting);
 
-    items.into_iter()
+    items.iter()
         .fold(String::new(), |mut acc, item| {
             acc.push_str(&format!("{indent}<li>{}</li>\n", item.as_ref()));
             acc

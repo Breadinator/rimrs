@@ -28,11 +28,17 @@ impl<'v, T> From<Arc<Mutex<Vec<T>>>> for VecMutAccessor<'v, T> {
 }
 
 impl<'v, T> VecMutAccessor<'v, T> {
+    #[must_use]
     pub fn len(&self) -> usize {
         match self {
             Self::ExclRef(vec) => vec.len(),
             Self::ArcMutex(armu) => armu.lock_ignore_poisoned().len(),
         }
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn remove(&mut self, index: usize) -> T {
@@ -42,6 +48,7 @@ impl<'v, T> VecMutAccessor<'v, T> {
         }
     }
 
+    #[must_use]
     pub fn position<P: FnMut(&T) -> bool>(&self, predicate: P) -> Option<usize> {
         match self {
             Self::ExclRef(vec) => vec.iter().position(predicate),
@@ -56,6 +63,8 @@ impl<'v, T> VecMutAccessor<'v, T> {
         }
     }
 
+    /// See [`Vec::try_reserve`]
+    #[allow(clippy::missing_errors_doc)]
     pub fn try_reserve(&mut self, additional: usize) -> Result<(), std::collections::TryReserveError> {
         match self {
             Self::ExclRef(vec) => vec.try_reserve(additional),

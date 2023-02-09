@@ -3,20 +3,27 @@ use eframe::egui::{
     Ui,
     Response,
 };
-use super::Button;
-use std::sync::mpsc::SyncSender;
+use crate::widgets::{
+    Button,
+    ModListing,
+};
+use std::sync::{
+    Arc,
+    Mutex,
+    mpsc::SyncSender,
+};
 
 #[derive(Debug)]
 pub struct ButtonsContainer<'a>(Vec<Button<'a>>);
 
-impl ButtonsContainer<'_> {
+impl<'a> ButtonsContainer<'a> {
     /// Creates the various buttons that appear to the right of the active mods listing.
     #[must_use]
-    pub fn generate(hint_tx: SyncSender<String>, writer_thread_tx: SyncSender<crate::writer_thread::Message>) -> Self {
+    pub fn generate(hint_tx: SyncSender<String>, writer_thread_tx: SyncSender<crate::writer_thread::Message>, active_mod_listing_ref: Arc<Mutex<ModListing<'a>>>) -> Self {
         Self(vec![
              Button::clear(hint_tx.clone()),
              Button::sort(hint_tx.clone()),
-             Button::save(hint_tx.clone(), writer_thread_tx),
+             Button::save(hint_tx.clone(), writer_thread_tx, active_mod_listing_ref),
              Button::run(hint_tx),
         ])
     }
