@@ -12,11 +12,11 @@ pub struct ButtonsContainer<'a>(Vec<Button<'a>>);
 impl ButtonsContainer<'_> {
     /// Creates the various buttons that appear to the right of the active mods listing.
     #[must_use]
-    pub fn generate(hint_tx: SyncSender<String>) -> Self {
+    pub fn generate(hint_tx: SyncSender<String>, writer_thread_tx: SyncSender<crate::writer_thread::Message>) -> Self {
         Self(vec![
              Button::clear(hint_tx.clone()),
              Button::sort(hint_tx.clone()),
-             Button::save(hint_tx.clone()),
+             Button::save(hint_tx.clone(), writer_thread_tx),
              Button::run(hint_tx),
         ])
     }

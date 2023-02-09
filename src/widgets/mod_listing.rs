@@ -101,3 +101,11 @@ impl Widget for &ModListing<'_> {
     }
 }
 
+impl From<&ModListing<'_>> for Vec<String> {
+    fn from(mod_listing: &ModListing<'_>) -> Self {
+        mod_listing.items.iter()
+            .map(|item| item.package_id.clone())
+            .collect()
+    }
+}
+

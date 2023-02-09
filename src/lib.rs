@@ -16,6 +16,7 @@ pub mod helpers;
 pub use helpers::traits;
 pub mod serialization;
 pub mod widgets;
+pub mod writer_thread;
 
 // mod forward reexports
 mod mods;
@@ -27,19 +28,25 @@ use serialization::{
     rimpy_config::RimPyConfig,
     mods_config::ModsConfig,
 };
+use helpers::AtomicFlag;
 use std::sync::{
     Arc,
-    RwLock,
-    mpsc::sync_channel,
+    mpsc::{
+        sync_channel,
+        SyncSender,
+    },
 };
+use once_cell::sync::Lazy;
 
 const CHANNEL_BUFFER: usize = 32;
+
+pub static CHANGED_ACTIVE_MODS: Lazy<AtomicFlag> = Lazy::new(AtomicFlag::new);
 
 #[non_exhaustive]
 #[derive(Debug)]
 pub struct RimRs<'a> {
     pub rimpy_config: Arc<RimPyConfig>,
-    pub mods_config: Arc<RwLock<ModsConfig>>,
+    pub mods_config: Arc<ModsConfig>,
     paths_panel: panels::PathsPanel,
     hint_panel: panels::HintPanel,
     mods_panel: panels::ModsPanel<'a>,
@@ -52,8 +59,8 @@ impl<'a> RimRs<'a> {
     /// * If it fails to read [`RimPyConfig`]
     /// * If it can't read the initial mod folders
     #[must_use]
-    #[allow(unused_variables)]
-    pub fn new(cc: &CreationContext<'_>) -> Self {
+    #[allow(unused_variables, clippy::needless_pass_by_value)]
+    pub fn new(cc: &CreationContext<'_>, writer_thread_tx: SyncSender<writer_thread::Message>) -> Self {
         let (hint_tx, hint_rx) = sync_channel(3);
         let hint_panel = panels::HintPanel::new(hint_rx);
 
@@ -64,12 +71,15 @@ impl<'a> RimRs<'a> {
         let mut mods_config_path = rimpy_config.folders.config_folder.clone()
             .expect("Game config folder not found in RimPy `config.ini`");
         mods_config_path.push("ModsConfig.xml");
-        let mods_config = Arc::from(RwLock::from(ModsConfig::try_from(mods_config_path.as_path()).unwrap()));
+        writer_thread_tx.send(writer_thread::Message::SetDestination(mods_config_path.clone())).expect("Couldn't setup writer thread");
 
-        let version = mods_config.read().unwrap().version.clone().unwrap_or(String::from("???"));
+        let mods_config = Arc::from(ModsConfig::try_from(mods_config_path.as_path()).unwrap());
+        writer_thread_tx.send(writer_thread::Message::SetModsConfig(mods_config.clone())).expect("Couldn't setup writer thread");
+
+        let version = mods_config.version.clone().unwrap_or(String::from("???"));
 
         let paths_panel = panels::PathsPanel::new(rimpy_config.clone(), version, hint_tx.clone());
-        let mods_panel = panels::ModsPanel::new::<CHANNEL_BUFFER>(rimpy_config.clone(), mods_config.clone(), mod_list, hint_tx);
+        let mods_panel = panels::ModsPanel::new::<CHANNEL_BUFFER>(rimpy_config.clone(), mods_config.clone(), mod_list, hint_tx, writer_thread_tx);
 
 
         Self {

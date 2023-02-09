@@ -5,6 +5,7 @@ use eframe::egui::{
     Response,
 };
 use std::sync::mpsc::SyncSender;
+use crate::traits::LogIfErr;
 
 pub struct Button<'a> {
     label: &'a str,
@@ -57,10 +58,12 @@ impl<'a> Button<'a> {
     }
 
     #[must_use]
-    pub fn save(hint_tx: SyncSender<String>) -> Self {
-        let action = Box::new(|| {}) as Box<dyn Fn() + 'a>;
+    pub fn save(hint_tx: SyncSender<String>, writer_thread_tx: SyncSender<crate::writer_thread::Message>) -> Self {
+        let action = Box::new(move || {
+            writer_thread_tx.try_send(crate::writer_thread::Message::Write(vec![])).log_if_err();
+        }) as Box<dyn Fn() + 'a>;
         let hint = "Save the mod list to ModsConfig.xml file (applies changes to game mod list)";
-        let is_enabled = Box::new(|| false) as Box<dyn Fn() -> bool + 'a>;
+        let is_enabled = Box::new(|| true) as Box<dyn Fn() -> bool + 'a>;
 
         Self::builder("Save", hint_tx)
             .action(action)

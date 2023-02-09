@@ -1,21 +1,23 @@
 use rimrs::helpers::{
     vec_ops::*,
     Side,
+    traits::LockIgnorePoisoned,
 };
+use std::sync::{Arc, Mutex};
 
 /* SINGLE OPS */
 
 #[test]
 fn swap() {
     let mut a = vec![1, 2, 3];
-    VecOp::Swap(0, 2).run(&mut a).unwrap();
+    VecOp::Swap(0, 2).run((&mut a).into()).unwrap();
     assert_eq!(a, vec![3, 2, 1]);
 }
 
 #[test]
 fn swap_out_of_bounds() {
     let mut a = vec![1, 2, 3];
-    let err = VecOp::Swap(0, 3).run(&mut a).unwrap_err();
+    let err = VecOp::Swap(0, 3).run((&mut a).into()).unwrap_err();
     assert_eq!(err, RunError::IndexOutOfBounds);
 }
 
@@ -23,21 +25,21 @@ fn swap_out_of_bounds() {
 fn push() {
     let mut a = vec![1, 2, 3];
     let op = VecOp::Push(4);
-    op.run(&mut a).unwrap();
+    op.run((&mut a).into()).unwrap();
     assert_eq!(a, vec![1, 2, 3, 4]);
 }
 
 #[test]
 fn remove() {
     let mut a = vec!["a", "b", "c"];
-    VecOp::Remove(1).run(&mut a).unwrap();
+    VecOp::Remove(1).run((&mut a).into()).unwrap();
     assert_eq!(a, vec!["a", "c"]);
 }
 
 #[test]
 fn for_each_mut_single() {
     let mut a = vec![4, 1, 13];
-    VecOp::ForEachMut(Box::new(|x| *x += 2)).run(&mut a).unwrap();
+    VecOp::ForEachMut(Box::new(|x| *x += 2)).run((&mut a).into()).unwrap();
     assert_eq!(a, vec![6, 3, 15]);
 }
 
@@ -48,7 +50,7 @@ fn single_op_left() {
     let mut a = vec!["a", "b", "c"];
     let mut b = vec!["d", "e"];
     let op = MultiVecOp::SingleOp(Side::Left, VecOp::Remove(1));
-    op.run(&mut a, &mut b).unwrap();
+    op.run((&mut a).into(), (&mut b).into()).unwrap();
     assert_eq!(a, vec!["a", "c"]);
 }
 
@@ -57,7 +59,7 @@ fn single_op_right() {
     let mut a = vec!["a", "b", "c"];
     let mut b = vec!["d", "e"];
     let op = MultiVecOp::SingleOp(Side::Right, VecOp::Remove(1));
-    op.run(&mut a, &mut b).unwrap();
+    op.run((&mut a).into(), (&mut b).into()).unwrap();
     assert_eq!(b, vec!["d"]);
 }
 
@@ -65,7 +67,7 @@ fn single_op_right() {
 fn move_from_left() {
     let mut a = vec!["a", "b", "c"];
     let mut b = vec!["d", "e"];
-    MultiVecOp::MoveFrom(Side::Left, Box::new(|s| s == &"b")).run(&mut a, &mut b).unwrap();
+    MultiVecOp::MoveFrom(Side::Left, Box::new(|s| s == &"b")).run((&mut a).into(), (&mut b).into()).unwrap();
     assert_eq!(a, vec!["a", "c"]);
     assert_eq!(b, vec!["d", "e", "b"]);
 }
@@ -74,7 +76,7 @@ fn move_from_left() {
 fn move_from_right() {
     let mut a = vec!["a", "b", "c"];
     let mut b = vec!["d", "e"];
-    MultiVecOp::MoveFrom(Side::Right, Box::new(|s| *s == "e")).run(&mut a, &mut b).unwrap();
+    MultiVecOp::MoveFrom(Side::Right, Box::new(|s| *s == "e")).run((&mut a).into(), (&mut b).into()).unwrap();
     assert_eq!(a, vec!["a", "b", "c", "e"]);
     assert_eq!(b, vec!["d"]);
 }
@@ -83,7 +85,7 @@ fn move_from_right() {
 fn move_from_failing() {
     let mut a = vec!["a", "b", "c"];
     let mut b = vec!["d", "e"];
-    let err = MultiVecOp::MoveFrom(Side::Left, Box::new(|s| s == &"e")).run(&mut a, &mut b).unwrap_err();
+    let err = MultiVecOp::MoveFrom(Side::Left, Box::new(|s| s == &"e")).run((&mut a).into(), (&mut b).into()).unwrap_err();
     assert_eq!(err, RunError::NotFound);
 }
 
@@ -91,7 +93,7 @@ fn move_from_failing() {
 fn swap_from_left() {
     let mut a = vec!["a", "b", "c"];
     let mut b = vec!["d", "e"];
-    MultiVecOp::Swap(Box::new(|s| *s == "c")).run(&mut a, &mut b).unwrap();
+    MultiVecOp::Swap(Box::new(|s| *s == "c")).run((&mut a).into(), (&mut b).into()).unwrap();
     assert_eq!(a, vec!["a", "b"]);
     assert_eq!(b, vec!["d", "e", "c"]);
 }
@@ -100,7 +102,7 @@ fn swap_from_left() {
 fn swap_from_right() {
     let mut a = vec!["a", "b", "c"];
     let mut b = vec!["d", "e", "g", "h"];
-    MultiVecOp::Swap(Box::new(|s| *s == "g")).run(&mut a, &mut b).unwrap();
+    MultiVecOp::Swap(Box::new(|s| *s == "g")).run((&mut a).into(), (&mut b).into()).unwrap();
     assert_eq!(a, vec!["a", "b", "c", "g"]);
     assert_eq!(b, vec!["d", "e", "h"]);
 }
@@ -109,7 +111,7 @@ fn swap_from_right() {
 fn swap_not_found() {
     let mut a = vec!["a", "b", "c"];
     let mut b = vec!["d", "e"];
-    let err = MultiVecOp::Swap(Box::new(|s| s == &"lol")).run(&mut a, &mut b).unwrap_err();
+    let err = MultiVecOp::Swap(Box::new(|s| s == &"lol")).run((&mut a).into(), (&mut b).into()).unwrap_err();
     assert_eq!(err, RunError::NotFound);
 }
 
@@ -123,7 +125,7 @@ fn swap_with_predicate_from_factory() {
     let mut a = vec![5, 32, 23, 9];
     let mut b = vec![9, 7, 12, 19];
 
-    MultiVecOp::Swap(matches_12).run(&mut a, &mut b).unwrap();
+    MultiVecOp::Swap(matches_12).run((&mut a).into(), (&mut b).into()).unwrap();
     assert_eq!(a, vec![5, 32, 23, 9, 12]);
     assert_eq!(b, vec![9, 7, 19]);
 }
@@ -137,7 +139,7 @@ fn swap_with_fn_predicate() {
     let mut a = vec![5, 32, 23, 9];
     let mut b = vec![9, 7, 12, 19];
 
-    MultiVecOp::Swap(Box::new(matches_12)).run(&mut a, &mut b).unwrap();
+    MultiVecOp::Swap(Box::new(matches_12)).run((&mut a).into(), (&mut b).into()).unwrap();
     assert_eq!(a, vec![5, 32, 23, 9, 12]);
     assert_eq!(b, vec![9, 7, 19]);
 }
@@ -147,7 +149,7 @@ fn for_each_mut_multi() {
     let mut a = vec![5, 32, 23, 9];
     let mut b = vec![9, 7, 12, 19];
 
-    MultiVecOp::ForEachMut(Box::new(|x| *x *= 2)).run(&mut a, &mut b).unwrap();
+    MultiVecOp::ForEachMut(Box::new(|x| *x *= 2)).run((&mut a).into(), (&mut b).into()).unwrap();
     assert_eq!(a, vec![10, 64, 46, 18]);
     assert_eq!(b, vec![18, 14, 24, 38]);
 }
@@ -156,17 +158,26 @@ fn for_each_mut_multi() {
 fn move_up_multi() {
     let mut a = vec!["a", "b", "c"];
     let mut b = vec!["d", "e", "f"];
-    MultiVecOp::MoveUp(Box::new(|item| item == &"b")).run(&mut a, &mut b).unwrap();
+    MultiVecOp::MoveUp(Box::new(|item| item == &"b")).run((&mut a).into(), (&mut b).into()).unwrap();
     assert_eq!(a, vec!["b", "a", "c"]);
     assert_eq!(b, vec!["d", "e", "f"]);
 }
 
 #[test]
-fn move_down_multi() {
+fn move_down_multi_exclref() {
     let mut a = vec!["a", "b", "c"];
     let mut b = vec!["d", "e", "f"];
-    MultiVecOp::MoveDown(Box::new(|item| item == &"e")).run(&mut a, &mut b).unwrap();
+    MultiVecOp::MoveDown(Box::new(|item| item == &"e")).run((&mut a).into(), (&mut b).into()).unwrap();
     assert_eq!(a, vec!["a", "b", "c"]);
     assert_eq!(b, vec!["d", "f", "e"]);
+}
+
+#[test]
+fn move_down_multi_mutex() {
+    let a = Arc::new(Mutex::new(vec!["a", "b", "c"]));
+    let b = Arc::new(Mutex::new(vec!["d", "e", "f"]));
+    MultiVecOp::MoveDown(Box::new(|item| item == &"e")).run(a.clone().into(), b.clone().into()).unwrap();
+    assert_eq!(*a.lock_ignore_poisoned(), vec!["a", "b", "c"]);
+    assert_eq!(*b.lock_ignore_poisoned(), vec!["d", "f", "e"]);
 }
 

@@ -1,10 +1,6 @@
 use std::{
     io::Read,
-    sync::{
-        Arc,
-        Mutex,
-        atomic::AtomicUsize,
-    },
+    sync::atomic::AtomicUsize,
 };
 use once_cell::sync::Lazy;
 use thiserror::Error;
@@ -13,6 +9,9 @@ pub mod config;
 pub mod traits;
 pub mod ui;
 pub mod vec_ops;
+
+mod vec_mut_accessor;
+pub use vec_mut_accessor::VecMutAccessor;
 
 mod atomic_flag;
 pub use atomic_flag::AtomicFlag;
@@ -37,16 +36,27 @@ pub fn strip_bom(bytes: &[u8]) -> &[u8] {
     }
 }
 
+/// Takes a [`Vec`] of items (which don't contain the `li` tags).
+///
+/// # Examples
+/// ```
+/// use rimrs::helpers::fold_lis;
+///
+/// let lis = vec!["a", "b"];
+/// let folded = fold_lis(lis, 1);
+///
+/// assert_eq!(&folded, "    <li>a</li>\n    <li>b</li>\n");
+/// ```
 #[must_use]
-pub fn fold_lis(items: Vec<String>, indenting: usize) -> String {
-    let indent = "    ".repeat(indenting);
+pub fn fold_lis<S: AsRef<str>>(items: Vec<S>, indenting: usize) -> String {
+    let single_indent = "    ";
+    let indent = single_indent.repeat(indenting);
 
-    items
-    .into_iter()
-    .fold(String::new(), |mut acc, item| {
-        acc.push_str(&format!("{indent}<li>{item}</li>\n"));
-        acc
-    })
+    items.into_iter()
+        .fold(String::new(), |mut acc, item| {
+            acc.push_str(&format!("{indent}<li>{}</li>\n", item.as_ref()));
+            acc
+        })
 }
 
 /// Reads a line from a reader.
@@ -69,10 +79,6 @@ pub fn read_line(reader: &mut impl Read, buf: &mut [u8;1]) -> Result<Option<Stri
     } else {
         Ok(Some(String::from_utf8(line)?))
     }
-}
-
-pub fn arc_mutex_none<T>() -> Arc<Mutex<Option<T>>> {
-    Arc::new(Mutex::new(None))
 }
 
 static ID_COUNTER: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));

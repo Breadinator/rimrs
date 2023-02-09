@@ -1,7 +1,10 @@
 use thiserror::Error;
 use crate::{
-    traits::{MoverMatcher, VecMoveError},
-    helpers::Side,
+    traits::{MoverMatcher, VecMoveError, LockIgnorePoisoned},
+    helpers::{
+        Side,
+        VecMutAccessor,
+    },
 };
 
 #[derive(Error, Debug, Clone, PartialEq, Eq)]
@@ -66,7 +69,7 @@ impl<'a, T> VecOp<'a, T> {
     ///
     /// # Errors
     /// See [`VecOps`] variant documentation.
-    pub fn run(self, vec: &mut Vec<T>) -> RunResult {
+    pub fn run<'v>(self, mut vec: VecMutAccessor<'v, T>) -> RunResult {
         match self {
             Self::Swap(a, b) => Self::swap(vec, a, b),
             Self::Push(item) => Self::push(vec, item),
@@ -77,7 +80,7 @@ impl<'a, T> VecOp<'a, T> {
         }
     }
 
-    fn swap(vec: &mut Vec<T>, a: usize, b: usize) -> RunResult {
+    fn swap(mut vec: VecMutAccessor<'_, T>, a: usize, b: usize) -> RunResult {
         if a >= vec.len() || b >= vec.len() {
             return Err(RunError::IndexOutOfBounds)
         }
@@ -86,13 +89,13 @@ impl<'a, T> VecOp<'a, T> {
         Ok(())
     }
 
-    fn push(vec: &mut Vec<T>, item: T) -> RunResult {
+    fn push(mut vec: VecMutAccessor<'_, T>, item: T) -> RunResult {
         vec.try_reserve(1).map_err(RunError::TryReserveError)?;
         vec.push(item);
         Ok(())
     }
 
-    fn remove(vec: &mut Vec<T>, index: usize) -> RunResult {
+    fn remove(mut vec: VecMutAccessor<'_, T>, index: usize) -> RunResult {
          if index >= vec.len() {
             return Err(RunError::IndexOutOfBounds)
         }
@@ -101,9 +104,10 @@ impl<'a, T> VecOp<'a, T> {
         Ok(())
     }
 
-    fn for_each_mut(vec: &mut [T], operation: &dyn Fn(&mut T)) {
-        for item in vec {
-            operation(item);
+    fn for_each_mut(vec: VecMutAccessor<'_, T>, operation: &dyn Fn(&mut T)) {
+        match vec {
+            VecMutAccessor::ExclRef(vec) => vec.iter_mut().for_each(operation),
+            VecMutAccessor::ArcMutex(armu) => armu.lock_ignore_poisoned().iter_mut().for_each(operation),
         }
     }
 }
@@ -144,7 +148,7 @@ impl<'a, T> MultiVecOp<'a, T> {
     ///
     /// # Errors
     /// See [`MultiVecOp`] variant documentation.
-    pub fn run(self, left: &mut Vec<T>, right: &mut Vec<T>) -> RunResult {
+    pub fn run(self, left: VecMutAccessor<'_, T>, right: VecMutAccessor<'_, T>) -> RunResult {
         match self {
             Self::SingleOp(Side::Left, op) => op.run(left),
             Self::SingleOp(Side::Right, op) => op.run(right),
@@ -157,18 +161,18 @@ impl<'a, T> MultiVecOp<'a, T> {
         }
     }
 
-    fn move_from(from: &mut Vec<T>, to: &mut Vec<T>, predicate: Box<dyn Fn(&T) -> bool + 'a>) -> RunResult {
-        let index = from.iter().position(predicate).ok_or(RunError::NotFound)?;
+    fn move_from(mut from: VecMutAccessor<'_, T>, to: VecMutAccessor<'_, T>, predicate: Box<dyn Fn(&T) -> bool + 'a>) -> RunResult {
+        let index = from.position(predicate).ok_or(RunError::NotFound)?;
         let item = from.remove(index);
 
         VecOp::Push(item).run(to)
     }
 
-    fn swap(left: &mut Vec<T>, right: &mut Vec<T>, predicate: Box<dyn Fn(&T) -> bool + 'a>) -> RunResult {
-        let mut index: Option<usize> = left.iter().position(&predicate);
+    fn swap(mut left: VecMutAccessor<'_, T>, mut right: VecMutAccessor<'_, T>, predicate: Box<dyn Fn(&T) -> bool + 'a>) -> RunResult {
+        let mut index: Option<usize> = left.position(&predicate);
         let mut from_side = Side::Left;
         if index.is_none() {
-            index = right.iter().position(predicate);
+            index = right.position(predicate);
             from_side = Side::Right;
         }
         let index: usize = index.ok_or(RunError::NotFound)?;
@@ -183,16 +187,19 @@ impl<'a, T> MultiVecOp<'a, T> {
         })
     }
 
-    fn for_each_mut(left: &mut [T], right: &mut [T], operation: &dyn Fn(&mut T)) {
-        for item in left {
-            operation(item);
+    fn for_each_mut(left: VecMutAccessor<'_, T>, right: VecMutAccessor<'_, T>, operation: &dyn Fn(&mut T)) {
+        match left {
+            VecMutAccessor::ExclRef(vec) => for item in &mut vec.iter_mut() { operation(item); },
+            VecMutAccessor::ArcMutex(armu) => for item in armu.lock().unwrap_or_else(|psn| psn.into_inner()).iter_mut() { operation(item); },
         }
-        for item in right {
-            operation(item);
+
+        match right {
+            VecMutAccessor::ExclRef(vec) => for item in &mut vec.iter_mut() { operation(item); },
+            VecMutAccessor::ArcMutex(armu) => for item in armu.lock().unwrap_or_else(|psn| psn.into_inner()).iter_mut() { operation(item); },
         }
     }
 
-    fn move_up(left: &mut Vec<T>, right: &mut Vec<T>, predicate: &crate::traits::MoverPredicate<'a, T>) -> RunResult {
+    fn move_up(mut left: VecMutAccessor<'_, T>, mut right: VecMutAccessor<'_, T>, predicate: &crate::traits::MoverPredicate<'a, T>) -> RunResult {
         match left.move_match_up(Box::new(predicate)) {
             Ok(()) => Ok(()),
             Err(VecMoveError::NoMatch) => right.move_match_up(Box::new(predicate)).map_err(Into::into),
@@ -200,7 +207,7 @@ impl<'a, T> MultiVecOp<'a, T> {
         }
     }
 
-    fn move_down(left: &mut Vec<T>, right: &mut Vec<T>, predicate: &crate::traits::MoverPredicate<'a, T>) -> RunResult {
+    fn move_down(mut left: VecMutAccessor<'_, T>, mut right: VecMutAccessor<'_, T>, predicate: &crate::traits::MoverPredicate<'a, T>) -> RunResult {
         match left.move_match_down(Box::new(predicate)) {
             Ok(()) => Ok(()),
             Err(VecMoveError::NoMatch) => right.move_match_down(Box::new(predicate)).map_err(Into::into),

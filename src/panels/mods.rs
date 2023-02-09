@@ -17,15 +17,12 @@ use crate::{
         ModInfo,
         ButtonsContainer,
     },
-    helpers::{
-        arc_mutex_none,
-        traits::LogIfErr,
-        vec_ops::MultiVecOp,
-    },
+    helpers::vec_ops::MultiVecOp,
+    traits::LockIgnorePoisoned,
 };
 use std::sync::{
     Arc,
-    RwLock,
+    Mutex,
     mpsc::{
         sync_channel,
         SyncSender,
@@ -39,20 +36,27 @@ use std::sync::{
 pub struct ModsPanel<'a> {
     pub mods: ModList,
     inactive: ModListing<'a>,
-    active: ModListing<'a>,
+    active: Arc<Mutex<ModListing<'a>>>,
     mod_info_widget: ModInfo,
     btns: ButtonsContainer<'a>,
     rimpy_config: Arc<RimPyConfig>,
-    mods_config: Arc<RwLock<ModsConfig>>,
+    mods_config: Arc<ModsConfig>,
     rx: Receiver<MultiVecOp<'a, ModListingItem<'a>>>,
 }
 
 impl ModsPanel<'_> {
-    pub fn new<const SIZE: usize>(rimpy_config: Arc<RimPyConfig>, mods_config: Arc<RwLock<ModsConfig>>, mods: ModList, hint_tx: SyncSender<String>) -> Self {
-        let selected = arc_mutex_none::<String>();
+    #[must_use]
+    pub fn new<const SIZE: usize>(
+        rimpy_config: Arc<RimPyConfig>,
+        mods_config: Arc<ModsConfig>,
+        mods: ModList,
+        hint_tx: SyncSender<String>,
+        writer_thread_tx: SyncSender<crate::writer_thread::Message>
+    ) -> Self {
+        let selected = Arc::new(Mutex::new(None));
         let (tx, rx) = sync_channel(SIZE);
 
-        let active_mods = mods_config.read().map_or_else(|_| Vec::new(), |mc| mc.activeMods.clone());
+        let active_mods = mods_config.activeMods.clone();
         let inactive_pids = mods.package_ids().map(|pids| pids.into_iter().filter(|pid| !active_mods.contains(pid)).collect())
             .unwrap_or_default();
 
@@ -61,12 +65,12 @@ impl ModsPanel<'_> {
 
         let mod_info_widget = ModInfo::new(mods.mods.clone(), selected);
 
-        let btns = ButtonsContainer::generate(hint_tx);
+        let btns = ButtonsContainer::generate(hint_tx, writer_thread_tx);
 
         Self {
             mods,
             inactive,
-            active,
+            active: Arc::new(Mutex::new(active)),
             mod_info_widget,
             btns,
             rimpy_config,
@@ -76,9 +80,14 @@ impl ModsPanel<'_> {
     }
 
     fn tick(&mut self) {
+        let mut active_guard = self.active.lock_ignore_poisoned();
         loop {
-            match self.rx.try_recv() {
-                Ok(msg) => { msg.run(&mut self.inactive.items, &mut self.active.items).log_if_err(); },
+            let res = self.rx.try_recv().map(|msg| msg.run((&mut self.inactive.items).into(), (&mut active_guard.items).into()));
+            match res {
+                Ok(Ok(_)) => crate::CHANGED_ACTIVE_MODS.set(),
+                Ok(Err(err)) => {
+                    log::error!("{err:?}");
+                },
                 Err(TryRecvError::Empty) => break,
                 Err(TryRecvError::Disconnected) => panic!("mods panel mpsc unexpectedly disconnected"),
             }
@@ -91,6 +100,8 @@ impl ModsPanel<'_> {
         let mod_listing_width = 2.5 * w;
         let h = ui.available_height();
 
+        let active_guard = self.active.lock().unwrap_or_else(|psn| psn.into_inner());
+
         TableBuilder::new(ui)
             .column(Column::exact(mod_info_width))
             .column(Column::exact(mod_listing_width))
@@ -99,7 +110,7 @@ impl ModsPanel<'_> {
             .body(|mut body| body.row(h, |mut row| {
                 row.col(|ui| {ui.add(&mut self.mod_info_widget);});
                 row.col(|ui| {ui.add(&self.inactive);});
-                row.col(|ui| {ui.add(&self.active);});
+                row.col(|ui| {ui.add(&*active_guard);});
                 row.col(|ui| {ui.add(&self.btns);});
             }));
         });
