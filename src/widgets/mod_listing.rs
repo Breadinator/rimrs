@@ -23,6 +23,7 @@ use eframe::egui::{
     Align,
 };
 
+/// A single list of mods.
 #[derive(Debug, Clone)]
 pub struct ModListing<'a> {
     id: String,

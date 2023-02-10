@@ -19,6 +19,7 @@ use crate::{
     CHANGED_ACTIVE_MODS,
 };
 
+/// The buttons that appear to the right of the mod lists.
 pub struct Button<'a> {
     label: &'a str,
     action: Option<Box<dyn Fn() + 'a>>,
@@ -39,7 +40,7 @@ impl<'a> Button<'a> {
         ButtonBuilder::new(label, hint_tx)
     }
 
-    /// Checks if the button should be enabled, using the function stored in `is_enabled_fn`.
+    /// Checks if the [`Button`] should be enabled, using the function stored in `is_enabled_fn`.
     /// Returns `true` if `None`.
     #[must_use]
     pub fn is_enabled(&self) -> bool {
@@ -47,6 +48,7 @@ impl<'a> Button<'a> {
             .map_or(true, |f| f())
     }
 
+    /// Generates the [`Button`] that clears the active mod list.
     #[must_use]
     pub fn clear(hint_tx: SyncSender<String>) -> Self {
         let action = Box::new(|| log::debug!("Unimplemented 😇")) as Box<dyn Fn() + 'a>;
@@ -58,6 +60,7 @@ impl<'a> Button<'a> {
             .build()
     }
 
+    /// Generates the [`Button`] that auto-sorts the active mod list.
     #[must_use]
     pub fn sort(hint_tx: SyncSender<String>) -> Self {
         let action = Box::new(|| log::debug!("Unimplemented 😇")) as Box<dyn Fn() + 'a>;
@@ -69,16 +72,14 @@ impl<'a> Button<'a> {
             .build()
     }
 
+    /// Generates the [`Button`] that saves the active mod list to disk.
     #[must_use]
-    pub fn save(hint_tx: SyncSender<String>, writer_thread_tx: SyncSender<crate::writer_thread::Message>, active_mod_listing_ref: Arc<Mutex<ModListing<'a>>>) -> Self {
+    pub fn save(hint_tx: SyncSender<String>, writer_thread_tx: SyncSender<writer_thread::Message>, active_mod_listing_ref: Arc<Mutex<ModListing<'a>>>) -> Self {
         let action = Box::new(move || {
-            log::info!("pre-lock");
             let active_mods: Vec<String> = Vec::from(&*active_mod_listing_ref.clone().lock_ignore_poisoned());
-            log::info!("post-lock");
-            match writer_thread_tx.try_send(writer_thread::Message::SetActiveMods(active_mods)) {
-                Ok(_) => { writer_thread_tx.try_send(writer_thread::Message::Save).log_if_err(); },
-                Err(err) => log::error!("{err}"),
-            }
+            writer_thread_tx.try_send(writer_thread::Message::SetActiveMods(active_mods))
+                .and_then(|_| writer_thread_tx.try_send(writer_thread::Message::Save))
+                .log_if_err();
         }) as Box<dyn Fn() + 'a>;
         let hint = "Save the mod list to ModsConfig.xml file (applies changes to game mod list)";
         let is_enabled = Box::new(|| CHANGED_ACTIVE_MODS.check()) as Box<dyn Fn() -> bool + 'a>;
@@ -90,6 +91,7 @@ impl<'a> Button<'a> {
             .build()
     }
 
+    /// Generates the [`Button`] that launches the game.
     #[must_use]
     pub fn run(hint_tx: SyncSender<String>) -> Self {
         let action = Box::new(|| {}) as Box<dyn Fn() + 'a>;
@@ -126,6 +128,7 @@ impl<'a> Widget for &Button<'a> {
     }
 }
 
+/// Used to build [`Button`]s.
 #[allow(clippy::module_name_repetitions)]
 pub struct ButtonBuilder<'a> {
     label: &'a str,

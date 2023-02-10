@@ -16,6 +16,7 @@ pub use vec_mut_accessor::VecMutAccessor;
 mod atomic_flag;
 pub use atomic_flag::AtomicFlag;
 
+/// Used to represent inactive mods with [`Side::Left`] and active mods with [`Side::Right`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Side {
     Left,
@@ -29,7 +30,8 @@ pub enum Side {
 /// All valid XML should be more than 3 characters long, so this should  be fine.
 #[must_use]
 pub fn strip_bom(bytes: &[u8]) -> &[u8] {
-    if bytes[0..3] == [239, 187, 191] {
+    const BOM: [u8; 3] = [239, 187, 191];
+    if bytes[0..3] == BOM {
         &bytes[3..]
     } else {
         bytes
@@ -81,19 +83,19 @@ pub fn read_line(reader: &mut impl Read, buf: &mut [u8;1]) -> Result<Option<Stri
     }
 }
 
-static ID_COUNTER: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
-
-#[must_use]
-pub fn fetch_inc_id() -> usize {
-    ID_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
-}
-
 #[derive(Debug, Error)]
 pub enum ReadLineError {
     #[error("couldn't read file: {0}")]
     IOError(#[from] std::io::Error),
     #[error("invalid utf-8: {0}")]
     FromUtf8Error(#[from] std::string::FromUtf8Error),
+}
+
+static ID_COUNTER: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
+
+#[must_use]
+pub fn fetch_inc_id() -> usize {
+    ID_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
 }
 
 /// Truncates a long `String`. If too long, it'll make it end in "...".

@@ -6,6 +6,8 @@ use eframe::egui::{
     Response,
 };
 
+/// Wrapper for a path.
+/// Basically just shows a [`eframe::egui::Button`] that opens the path when clicked.
 #[derive(Debug, Clone)]
 pub struct PathLabel(PathBuf);
 

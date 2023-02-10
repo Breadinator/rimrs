@@ -18,7 +18,7 @@ pub struct HintPanel {
     pub hint: Option<String>,
     rx: Receiver<String>,
     last_updated: Option<SystemTime>,
-    buf: Option<String>,
+    queued: Option<String>,
 }
 
 impl HintPanel {
@@ -28,29 +28,28 @@ impl HintPanel {
             hint: None,
             rx,
             last_updated: None,
-            buf: None,
+            queued: None,
         }
     }
 
     pub fn update(&mut self) {
         while let Ok(hint) = self.rx.try_recv() {
-            self.buf = Some(hint);
+            self.queued = Some(hint);
         }
 
-        if self.buf.is_none() || self.buf == self.hint {
+        if self.queued.is_none() || self.queued == self.hint {
             return;
         }
 
         if let Some(last_updated) = self.last_updated.as_mut() {
-            log::debug!("{:?}", last_updated.elapsed());
             if last_updated.elapsed().unwrap_or(UPDATE_DURATION) >= UPDATE_DURATION {
-                self.hint = self.buf.take();
-                self.buf = None;
+                self.hint = self.queued.take();
+                self.queued = None;
                 *last_updated = SystemTime::now();
             }
         } else {
-            self.hint = self.buf.take();
-            self.buf = None;
+            self.hint = self.queued.take();
+            self.queued = None;
             self.last_updated = Some(SystemTime::now());
         }
     }
@@ -59,7 +58,12 @@ impl HintPanel {
 impl Widget for &mut HintPanel {
     fn ui(self, ui: &mut Ui) -> Response {
         self.update();
-        ui.label(&self.hint.clone().unwrap_or_default())
+
+        if let Some(hint) = self.hint.as_ref() {
+            ui.label(hint)
+        } else {
+            ui.label("")
+        }
     }
 }
 

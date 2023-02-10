@@ -127,9 +127,9 @@ impl<'v, T> Mover for &mut VecMutAccessor<'v, T> {
     }
 }
 
-impl<'v, 'r, T> MoverMatcher for &'r mut VecMutAccessor<'v, T>
+impl<'v, 'a, T> MoverMatcher for &'a mut VecMutAccessor<'v, T>
 where
-    &'r mut VecMutAccessor<'v, T>: Mover<Error = VecMoveError>,
+    &'a mut VecMutAccessor<'v, T>: Mover<Error = VecMoveError>,
 {
     type Item = T;
 

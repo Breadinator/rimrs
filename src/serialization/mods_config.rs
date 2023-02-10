@@ -16,7 +16,14 @@ pub struct ModsConfig {
     /// RimWorld version.
     /// E.g. `1.4.3613 rev641`
     pub version: Option<String>,
+
+    /// The mods that rimworld will load when launched.
+    /// Represented here as a [`Vec`] of package IDs,
+    /// represented in-file as a list of package IDs using `<li>{packageid}</li>` for the items.
     pub activeMods: Vec<String>,
+
+    /// List of official RimWorld DLCs.
+    /// Stored in the same way as `activeMods`.
     pub knownExpansions: Vec<String>,
 }
 
@@ -84,7 +91,7 @@ impl TryFrom<&Path> for ModsConfig {
     fn try_from(path: &Path) -> Result<Self, Self::Error> {
         let bytes = std::fs::read(path)?;
         Self::try_from(bytes.as_slice())
-            .map_err(std::convert::Into::into)
+            .map_err(Into::into)
     }
 }
 

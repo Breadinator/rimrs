@@ -82,7 +82,6 @@ impl<'a> RimRs<'a> {
         let paths_panel = panels::PathsPanel::new(rimpy_config.clone(), version, hint_tx.clone());
         let mods_panel = panels::ModsPanel::new::<CHANNEL_BUFFER>(rimpy_config.clone(), mods_config.clone(), mod_list, hint_tx, writer_thread_tx);
 
-
         Self {
             rimpy_config,
             mods_config,

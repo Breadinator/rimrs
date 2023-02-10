@@ -34,7 +34,7 @@ impl RimPyConfig {
     /// * If it can't parse that file as INI-syntax
     pub fn from_file() -> Result<Self, ReadRimPyConfigError> {
         Self::try_from(INIReader::from_rimpy_config_ini()?)
-            .map_err(std::convert::Into::into)
+            .map_err(Into::into)
     }
 
     /// Tries to read the rimpy config from a given path.
@@ -44,7 +44,7 @@ impl RimPyConfig {
     /// * If it can't parse that file as INI-syntax
     pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, INIError> {
         Self::try_from(INIReader::new(path).map_err(INIError::IOError)?)
-            .map_err(std::convert::Into::into)
+            .map_err(Into::into)
     }
 }
 

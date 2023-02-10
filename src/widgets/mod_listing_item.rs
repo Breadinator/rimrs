@@ -3,6 +3,7 @@ use crate::{
     traits::{
         LogIfErr,
         TableRower,
+        LockIgnorePoisoned,
     },
     helpers::vec_ops::MultiVecOp,
 };
@@ -22,6 +23,8 @@ use eframe::egui::{
 };
 use egui_extras::TableRow;
 
+/// A single mod. Shows its display name and buttons to reorder it.
+///
 /// Todo: add visual buttons to reorder items
 #[derive(Debug, Clone)]
 pub struct ModListingItem<'a> {
@@ -48,17 +51,11 @@ impl<'a> ModListingItem<'a> {
     }
 
     fn get_display_name(&self) -> String {
-        if let Some(mmd_mutex) = &self.mod_meta_data {
-            if let Ok(mmd) = mmd_mutex.lock() {
-                if let Some(package_mmd) = mmd.get(&self.package_id) {
-                    if let Some(name) = package_mmd.name.clone() {
-                        return name;
-                    }
-                }
-            }
-        }
-
-        self.package_id.clone()
+        self.mod_meta_data.as_ref()
+            .map(|mmd| mmd.lock_ignore_poisoned()).as_ref()
+            .and_then(|mmd| mmd.get(&self.package_id))
+            .and_then(|m| m.name.clone())
+            .unwrap_or_else(|| self.package_id.clone())
     }
 
     fn pid_matches_predicate(pid: String) -> Box<dyn for<'b> Fn(&'b ModListingItem<'_>) -> bool + 'a> {
@@ -131,12 +128,10 @@ impl TableRower for &ModListingItem<'_> {
                 self.toggle_activated();
             }
 
-            // placeholder button
             if lab.middle_clicked() {
                 self.move_up();
             }
 
-            // placeholder button
             if lab.secondary_clicked() {
                 self.move_down();
             }

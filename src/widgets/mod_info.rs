@@ -27,7 +27,8 @@ use egui_extras::{
     Column,
 };
 
-#[derive(Debug, Default)]
+/// The info panel to the left of the mods lists that shows more details on a selected mod.
+#[derive(Debug)]
 pub struct ModInfo {
     mmd: Arc<Mutex<HashMap<String, ModMetaData>>>,
     selected: Arc<Mutex<Option<String>>>,
