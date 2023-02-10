@@ -4,10 +4,14 @@ use eframe::egui::{
     Ui,
     Response,
 };
-use std::sync::{
-    Arc,
-    Mutex,
-    mpsc::SyncSender,
+use std::{
+    sync::{
+        Arc,
+        Mutex,
+        mpsc::SyncSender,
+    },
+    path::PathBuf,
+    process::Command,
 };
 use crate::{
     traits::{
@@ -93,8 +97,15 @@ impl<'a> Button<'a> {
 
     /// Generates the [`Button`] that launches the game.
     #[must_use]
-    pub fn run(hint_tx: SyncSender<String>) -> Self {
-        let action = Box::new(|| {}) as Box<dyn Fn() + 'a>;
+    pub fn run(hint_tx: SyncSender<String>, exe_path: PathBuf, args: Option<String>) -> Self {
+        let action = Box::new(move || {
+            let mut cmd = Command::new(&exe_path);
+            if let Some(args) = args.as_ref() {
+                cmd.arg(args); // idk if this'll work with more complex args than I use, TODO check
+            }
+            cmd.spawn()
+                .log_if_err();
+        }) as Box<dyn Fn() + 'a>;
         let hint = "Run the game";
         let is_enabled = Box::new(|| !CHANGED_ACTIVE_MODS.check()) as Box<dyn Fn() -> bool>;
 

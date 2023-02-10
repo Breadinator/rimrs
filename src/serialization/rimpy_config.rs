@@ -13,6 +13,7 @@ use thiserror::Error;
 pub struct RimPyConfig {
     pub colors: Option<HashMap<String, String>>,
     pub folders: RimPyConfigFolders,
+    pub startup_params: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -54,28 +55,27 @@ impl TryFrom<INIReader<'_>> for RimPyConfig {
         let mut conf = Self::default();
         let mut colors = HashMap::new();
 
-        // indentation go brrr
         for kvp in reader {
-            if let Ok(kvp) = kvp {
-                match kvp.section.as_deref() {
-                    Some("Folders") => {
-                        match kvp.key.as_str() {
-                            "Config folder" => conf.folders.config_folder = Some(PathBuf::from(kvp.value)),
-                            "Game folder" => conf.folders.game_folder = Some(PathBuf::from(kvp.value)),
-                            "Local mods" => conf.folders.local_mods = Some(PathBuf::from(kvp.value)),
-                            "Expansions" => conf.folders.expansions = Some(PathBuf::from(kvp.value)),
-                            "Steam mods" => conf.folders.steam_mods = Some(PathBuf::from(kvp.value)),
-                            "SteamCMD" => conf.folders.steamcmd = Some(PathBuf::from(kvp.value)),
-                            _ => {}
-                        }
+            let kvp = kvp?; // kinda annoying
+            match kvp.section.as_deref() {
+                Some("Folders") => {
+                    match kvp.key.as_str() {
+                        "Config folder" => conf.folders.config_folder = Some(PathBuf::from(kvp.value)),
+                        "Game folder" => conf.folders.game_folder = Some(PathBuf::from(kvp.value)),
+                        "Local mods" => conf.folders.local_mods = Some(PathBuf::from(kvp.value)),
+                        "Expansions" => conf.folders.expansions = Some(PathBuf::from(kvp.value)),
+                        "Steam mods" => conf.folders.steam_mods = Some(PathBuf::from(kvp.value)),
+                        "SteamCMD" => conf.folders.steamcmd = Some(PathBuf::from(kvp.value)),
+                        _ => {}
                     }
-                    Some("Colors") => {
-                        colors.insert(kvp.key, kvp.value);
-                    }
-                    _ => {}
                 }
-            } else if let Err(err) = kvp {
-                return Err(err);
+                Some("Colors") => {
+                    colors.insert(kvp.key, kvp.value);
+                }
+                Some("StartupParams") => {
+                    conf.startup_params = Some(kvp.value);
+                }
+                _ => {}
             }
         }
 

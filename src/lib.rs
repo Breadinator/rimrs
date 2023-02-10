@@ -69,6 +69,11 @@ impl<'a> RimRs<'a> {
         let mod_list = ModList::try_from(&rimpy_config_unwrapped).unwrap();
         let rimpy_config = Arc::new(rimpy_config_unwrapped);
 
+        let mut exe_path = rimpy_config.folders.game_folder.clone().unwrap();
+        exe_path.push("RimWorldWin64.exe"); // TODO: allow for 32 bit, and also non-windows
+
+        let cmd_args = rimpy_config.startup_params.clone();
+
         let mut mods_config_path = rimpy_config.folders.config_folder.clone()
             .expect("Game config folder not found in RimPy `config.ini`");
         mods_config_path.push("ModsConfig.xml");
@@ -80,15 +85,17 @@ impl<'a> RimRs<'a> {
         let version = mods_config.version.clone().unwrap_or(String::from("???"));
 
         let paths_panel = panels::PathsPanel::new(rimpy_config.clone(), version, hint_tx.clone());
-        let mods_panel = panels::ModsPanel::new::<CHANNEL_BUFFER>(rimpy_config.clone(), mods_config.clone(), mod_list, hint_tx, writer_thread_tx);
+        let mods_panel = panels::ModsPanel::new::<CHANNEL_BUFFER>(
+            rimpy_config.clone(),
+            mods_config.clone(),
+            mod_list,
+            hint_tx,
+            writer_thread_tx,
+            exe_path,
+            cmd_args,
+        );
 
-        Self {
-            rimpy_config,
-            mods_config,
-            paths_panel,
-            hint_panel,
-            mods_panel,
-        }
+        Self { rimpy_config, mods_config, paths_panel, hint_panel, mods_panel }
     }
 
     pub fn update_modlist(&mut self) {

@@ -20,15 +20,18 @@ use crate::{
     helpers::vec_ops::MultiVecOp,
     traits::LockIgnorePoisoned,
 };
-use std::sync::{
-    Arc,
-    Mutex,
-    mpsc::{
-        sync_channel,
-        SyncSender,
-        Receiver,
-        TryRecvError,
+use std::{
+    sync::{
+        Arc,
+        Mutex,
+        mpsc::{
+            sync_channel,
+            SyncSender,
+            Receiver,
+            TryRecvError,
+        },
     },
+    path::PathBuf,
 };
 
 #[allow(dead_code)]
@@ -45,6 +48,7 @@ pub struct ModsPanel<'a> {
 }
 
 impl ModsPanel<'_> {
+    /// Makes a new mods panel
     #[must_use]
     pub fn new<const SIZE: usize>(
         rimpy_config: Arc<RimPyConfig>,
@@ -52,6 +56,8 @@ impl ModsPanel<'_> {
         mods: ModList,
         hint_tx: SyncSender<String>,
         writer_thread_tx: SyncSender<crate::writer_thread::Message>,
+        exe_path: PathBuf,
+        args: Option<String>,
     ) -> Self {
         let selected = Arc::new(Mutex::new(None));
         let (tx, rx) = sync_channel(SIZE);
@@ -65,7 +71,7 @@ impl ModsPanel<'_> {
 
         let mod_info_widget = ModInfo::new(mods.mods.clone(), selected);
 
-        let btns = ButtonsContainer::generate(hint_tx, writer_thread_tx, active.clone());
+        let btns = ButtonsContainer::generate(hint_tx, writer_thread_tx, active.clone(), exe_path, args);
 
         Self {
             mods,
