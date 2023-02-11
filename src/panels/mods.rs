@@ -71,7 +71,7 @@ impl ModsPanel<'_> {
 
         let mod_info_widget = ModInfo::new(mods.mods.clone(), selected);
 
-        let btns = ButtonsContainer::generate(hint_tx, writer_thread_tx, active.clone(), exe_path, args);
+        let btns = ButtonsContainer::generate(&hint_tx, writer_thread_tx, active.clone(), exe_path, args);
 
         Self {
             mods,

@@ -10,6 +10,8 @@ use eframe::{
     App,
 };
 
+pub use eframe;
+
 // pub mods
 pub mod panels;
 pub mod helpers;
@@ -21,6 +23,9 @@ pub mod writer_thread;
 // mod forward reexports
 mod mods;
 pub use mods::*;
+
+mod plugins;
+pub use plugins::*;
 
 // local imports
 use panels::panel_using_widget;

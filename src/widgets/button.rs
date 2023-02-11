@@ -27,9 +27,9 @@ use crate::{
 pub struct Button<'a> {
     label: &'a str,
     action: Option<Box<dyn Fn() + 'a>>,
-    hint: Option<&'a str>,
     is_enabled_fn: Option<Box<dyn Fn() -> bool + 'a>>,
-    hint_tx: SyncSender<String>,
+    hint: Option<&'a str>,
+    hint_tx: Option<SyncSender<String>>,
 }
 
 impl std::fmt::Debug for Button<'_> {
@@ -40,8 +40,8 @@ impl std::fmt::Debug for Button<'_> {
 
 impl<'a> Button<'a> {
     #[must_use]
-    pub fn builder(label: &'a str, hint_tx: SyncSender<String>) -> ButtonBuilder<'a> {
-        ButtonBuilder::new(label, hint_tx)
+    pub fn builder(label: &'a str) -> ButtonBuilder<'a> {
+        ButtonBuilder::new(label)
     }
 
     /// Checks if the [`Button`] should be enabled, using the function stored in `is_enabled_fn`.
@@ -58,9 +58,9 @@ impl<'a> Button<'a> {
         let action = Box::new(|| log::debug!("Unimplemented 😇")) as Box<dyn Fn() + 'a>;
         let hint = "Remove all mods, except Core and DLCs";
 
-        Self::builder("Clear", hint_tx)
+        Self::builder("Clear")
             .action(action)
-            .hint(hint)
+            .hint(hint, hint_tx)
             .build()
     }
 
@@ -70,9 +70,9 @@ impl<'a> Button<'a> {
         let action = Box::new(|| log::debug!("Unimplemented 😇")) as Box<dyn Fn() + 'a>;
         let hint = "Auto-sort mods";
 
-        Self::builder("Sort", hint_tx)
+        Self::builder("Sort")
             .action(action)
-            .hint(hint)
+            .hint(hint, hint_tx)
             .build()
     }
 
@@ -88,9 +88,9 @@ impl<'a> Button<'a> {
         let hint = "Save the mod list to ModsConfig.xml file (applies changes to game mod list)";
         let is_enabled = Box::new(|| CHANGED_ACTIVE_MODS.check()) as Box<dyn Fn() -> bool + 'a>;
 
-        Self::builder("Save", hint_tx)
+        Self::builder("Save")
             .action(action)
-            .hint(hint)
+            .hint(hint, hint_tx)
             .is_enabled_fn(is_enabled)
             .build()
     }
@@ -109,9 +109,9 @@ impl<'a> Button<'a> {
         let hint = "Run the game";
         let is_enabled = Box::new(|| !CHANGED_ACTIVE_MODS.check()) as Box<dyn Fn() -> bool>;
 
-        Self::builder("Run", hint_tx)
+        Self::builder("Run")
             .action(action)
-            .hint(hint)
+            .hint(hint, hint_tx)
             .is_enabled_fn(is_enabled)
             .build()
     }
@@ -130,8 +130,8 @@ impl<'a> Widget for &Button<'a> {
 
         // Doesn't trigger hover when disabled; might have to implement own hover logic if no given workaround?
         if resp.hovered() {
-            if let Some(hint) = self.hint {
-                self.hint_tx.try_send(String::from(hint)).ok();
+            if let (Some(hint), Some(hint_tx)) = (self.hint, self.hint_tx.as_ref()) {
+                hint_tx.try_send(String::from(hint)).ok();
             }
         }
 
@@ -144,20 +144,20 @@ impl<'a> Widget for &Button<'a> {
 pub struct ButtonBuilder<'a> {
     label: &'a str,
     action: Option<Box<dyn Fn() + 'a>>,
-    hint: Option<&'a str>,
     is_enabled_fn: Option<Box<dyn Fn() -> bool + 'a>>,
-    hint_tx: SyncSender<String>,
+    hint: Option<&'a str>,
+    hint_tx: Option<SyncSender<String>>,
 }
 
 impl<'a> ButtonBuilder<'a> {
     #[must_use]
-    pub fn new(label: &'a str, hint_tx: SyncSender<String>) -> Self {
+    pub fn new(label: &'a str) -> Self {
         Self {
             label,
             action: None,
-            hint: None,
             is_enabled_fn: None,
-            hint_tx,
+            hint: None,
+            hint_tx: None,
         }
     }
 
@@ -173,8 +173,9 @@ impl<'a> ButtonBuilder<'a> {
     }
 
     #[must_use]
-    pub fn hint(mut self, hint: &'a str) -> Self {
+    pub fn hint(mut self, hint: &'a str, hint_tx: SyncSender<String>) -> Self {
         self.hint = Some(hint);
+        self.hint_tx = Some(hint_tx);
         self
     }
 

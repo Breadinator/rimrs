@@ -1508,6 +1508,7 @@ dependencies = [
  "eframe",
  "egui_extras",
  "env_logger",
+ "libloading",
  "log",
  "once_cell",
  "open",
