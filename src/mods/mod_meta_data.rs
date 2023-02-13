@@ -20,7 +20,6 @@ use crate::{
 /// The mod metadata contained in its About.xml file.
 /// See [`https://www.rimworldwiki.com/wiki/About.xml`].
 #[allow(non_snake_case)]
-#[non_exhaustive]
 #[derive(Debug, Clone, Default)]
 pub struct ModMetaData {
     pub path: Option<PathBuf>,

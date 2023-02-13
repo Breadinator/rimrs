@@ -22,12 +22,14 @@ pub mod writer_thread;
 mod mods;
 pub use mods::*;
 
-// local imports
-use panels::panel_using_widget;
-use serialization::{
+// standalone reexports
+pub use serialization::{
     rimpy_config::RimPyConfig,
     mods_config::ModsConfig,
 };
+
+// local imports
+use panels::panel_using_widget;
 use helpers::AtomicFlag;
 use std::sync::{
     Arc,
@@ -64,10 +66,9 @@ impl<'a> RimRs<'a> {
         let (hint_tx, hint_rx) = sync_channel(3);
         let hint_panel = panels::HintPanel::new(hint_rx);
 
-
-        let rimpy_config_unwrapped = RimPyConfig::from_file().unwrap();
-        let mod_list = ModList::try_from(&rimpy_config_unwrapped).unwrap();
-        let rimpy_config = Arc::new(rimpy_config_unwrapped);
+        let rimpy_config = RimPyConfig::from_file().unwrap();
+        let mod_list = ModList::try_from(&rimpy_config).unwrap();
+        let rimpy_config = Arc::new(rimpy_config);
 
         let mut exe_path = rimpy_config.folders.game_folder.clone().unwrap();
         exe_path.push("RimWorldWin64.exe"); // TODO: allow for 32 bit, and also non-windows
