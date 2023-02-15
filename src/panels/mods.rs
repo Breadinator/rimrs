@@ -56,7 +56,7 @@ pub struct ModsPanel<'a> {
 impl ModsPanel<'_> {
     /// Makes a new mods panel
     #[must_use]
-    pub fn new<const SIZE: usize>(
+    pub fn new(
         rimpy_config: Rc<RimPyConfig>,
         mods_config: Arc<ModsConfig>,
         mods: ModList,

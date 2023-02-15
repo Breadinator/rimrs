@@ -43,8 +43,6 @@ use eframe::{
     App,
 };
 
-const CHANNEL_BUFFER: usize = 32;
-
 pub static CHANGED_ACTIVE_MODS: Lazy<AtomicFlag> = Lazy::new(AtomicFlag::new);
 
 #[non_exhaustive]
@@ -89,7 +87,7 @@ impl<'a> RimRs<'a> {
         let version = mods_config.version.clone().unwrap_or(String::from("???"));
 
         let paths_panel = panels::PathsPanel::new(rimpy_config.clone(), version, hint_tx.clone());
-        let mods_panel = panels::ModsPanel::new::<CHANNEL_BUFFER>(
+        let mods_panel = panels::ModsPanel::new(
             rimpy_config.clone(),
             mods_config.clone(),
             mod_list,
