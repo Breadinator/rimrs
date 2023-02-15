@@ -4,10 +4,8 @@ use crate::{
 };
 use std::{
     path::PathBuf,
-    sync::{
-        Arc,
-        mpsc::SyncSender,
-    },
+    sync::mpsc::SyncSender,
+    rc::Rc,
 };
 use eframe::egui::{
     Widget,
@@ -22,14 +20,14 @@ use egui_extras::{
 
 #[derive(Debug, Clone)]
 pub struct PathsPanel {
-    rimpy_config: Arc<RimPyConfig>,
+    rimpy_config: Rc<RimPyConfig>,
     version: String,
     hint_tx: SyncSender<String>,
 }
 
 impl PathsPanel {
     #[must_use]
-    pub fn new(rimpy_config: Arc<RimPyConfig>, version: String, hint_tx: SyncSender<String>) -> Self {
+    pub fn new(rimpy_config: Rc<RimPyConfig>, version: String, hint_tx: SyncSender<String>) -> Self {
         Self {
             rimpy_config,
             version,
@@ -44,7 +42,7 @@ impl Widget for &mut PathsPanel {
     }
 }
 
-fn build_table(ui: &mut Ui, conf: &Arc<RimPyConfig>, version: &String, hint_tx: &SyncSender<String>) -> Response {
+fn build_table(ui: &mut Ui, conf: &Rc<RimPyConfig>, version: &String, hint_tx: &SyncSender<String>) -> Response {
     ui.scope(|ui| {
         TableBuilder::new(ui)
             .column(Column::auto())
@@ -77,7 +75,7 @@ fn row_1(row: &mut TableRow, version: &String, hint_tx: &SyncSender<String>) {
     });
 }
 
-fn row_2(row: &mut TableRow, conf: &Arc<RimPyConfig>, hint_tx: &SyncSender<String>) {
+fn row_2(row: &mut TableRow, conf: &Rc<RimPyConfig>, hint_tx: &SyncSender<String>) {
     row.col(|ui| {
         open_button(ui, "Game folder", &conf.folders.game_folder, Some("Open folder containing RimWorld"), hint_tx);
     });
@@ -86,7 +84,7 @@ fn row_2(row: &mut TableRow, conf: &Arc<RimPyConfig>, hint_tx: &SyncSender<Strin
     });
 }
 
-fn row_3(row: &mut TableRow, conf: &Arc<RimPyConfig>, hint_tx: &SyncSender<String>) {
+fn row_3(row: &mut TableRow, conf: &Rc<RimPyConfig>, hint_tx: &SyncSender<String>) {
     row.col(|ui| {
         open_button(ui, "Config folder", &conf.folders.config_folder, Some("Open the RimWorld game config folder"), hint_tx);
     });
@@ -95,7 +93,7 @@ fn row_3(row: &mut TableRow, conf: &Arc<RimPyConfig>, hint_tx: &SyncSender<Strin
     });
 }
 
-fn row_4(row: &mut TableRow, conf: &Arc<RimPyConfig>, hint_tx: &SyncSender<String>) {
+fn row_4(row: &mut TableRow, conf: &Rc<RimPyConfig>, hint_tx: &SyncSender<String>) {
      row.col(|ui| {
         open_button(ui, "Steam mods", &conf.folders.steam_mods, Some("Open folder where steam mods are stored"), hint_tx);
     });
@@ -104,7 +102,7 @@ fn row_4(row: &mut TableRow, conf: &Arc<RimPyConfig>, hint_tx: &SyncSender<Strin
     });
 }
 
-fn row_5(row: &mut TableRow, conf: &Arc<RimPyConfig>, hint_tx: &SyncSender<String>) {
+fn row_5(row: &mut TableRow, conf: &Rc<RimPyConfig>, hint_tx: &SyncSender<String>) {
     row.col(|ui| {
         open_button(ui, "Local mods", &conf.folders.local_mods, Some("Open folder where local mods are stored (Mods folder)"), hint_tx);
     });

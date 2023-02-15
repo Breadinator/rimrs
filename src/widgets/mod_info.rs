@@ -9,6 +9,8 @@ use std::{
         },
     },
     collections::HashMap,
+    rc::Rc,
+    cell::RefCell,
 };
 use crate::{
     ModMetaData,
@@ -31,7 +33,7 @@ use egui_extras::{
 #[derive(Debug)]
 pub struct ModInfo {
     mmd: Arc<Mutex<HashMap<String, ModMetaData>>>,
-    selected: Arc<Mutex<Option<String>>>,
+    selected: Rc<RefCell<Option<String>>>,
     last_selected: Option<String>,
     path_lab: Option<PathLabel>,
     id: AtomicUsize,
@@ -39,7 +41,7 @@ pub struct ModInfo {
 
 impl ModInfo {
     #[must_use]
-    pub fn new(mmd: Arc<Mutex<HashMap<String, ModMetaData>>>, selected: Arc<Mutex<Option<String>>>) -> Self {
+    pub fn new(mmd: Arc<Mutex<HashMap<String, ModMetaData>>>, selected: Rc<RefCell<Option<String>>>) -> Self {
         Self {
             mmd,
             selected,
@@ -51,18 +53,17 @@ impl ModInfo {
 
     fn render(
         ui: &mut Ui,
-        selected: &String,
+        selected: &str,
         mmd: &ModMetaData,
         last_selected: &mut Option<String>,
         path_lab: &mut Option<PathLabel>,
         id: &AtomicUsize,
     ) -> Response {
         // get data
-        if last_selected.as_ref() != Some(selected) {
-            *last_selected = Some(selected.clone());
-            *path_lab = Some(PathLabel::new(mmd.path.clone().unwrap_or_default()));
-            id.store(fetch_inc_id(), Ordering::Release);
-        }
+        *last_selected = Some(String::from(selected));
+        *path_lab = Some(PathLabel::new(mmd.path.clone().unwrap_or_default()));
+        id.store(fetch_inc_id(), Ordering::Release);
+
         if path_lab.is_none() {
             *path_lab = Some(PathLabel::new(mmd.path.clone().unwrap_or_default()));
         }
@@ -118,8 +119,8 @@ impl ModInfo {
 
 impl Widget for &mut ModInfo {
     fn ui(self, ui: &mut Ui) -> Response {
-        let sel = self.selected.try_lock();
-        if let Ok(Some(sel)) = sel.as_deref() {
+        let sel = self.selected.borrow_mut();
+        if let Some(sel) = sel.as_deref() {
             let map = self.mmd.try_lock();
             match map.as_ref().map(|map| map.get(sel)) {
                 Ok(Some(mmd)) => return ModInfo::render(ui, sel, mmd, &mut self.last_selected, &mut self.path_lab, &self.id),
@@ -127,10 +128,7 @@ impl Widget for &mut ModInfo {
                 Err(TryLockError::Poisoned(_)) => log::error!("Couldn't get lock for ModMetaData map: mutex poisoned"),
                 Err(TryLockError::WouldBlock) => log::warn!("Couldn't get lock for ModMetaData map: already taken."),
             }
-        } else if let Err(TryLockError::Poisoned(_)) = sel.as_deref() {
-            log::error!("Couldn't get lock for Selected mod: mutex poisoned");
         }
-
         ui.scope(|_|{}).response
     }
 }

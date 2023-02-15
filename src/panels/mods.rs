@@ -18,20 +18,21 @@ use crate::{
         ButtonsContainer,
     },
     helpers::vec_ops::MultiVecOp,
-    traits::LockIgnorePoisoned,
     writer_thread,
 };
 use std::{
     sync::{
         Arc,
-        Mutex,
         mpsc::{
-            sync_channel,
+            channel,
+            Sender,
             SyncSender,
             Receiver,
             TryRecvError,
         },
     },
+    rc::Rc,
+    cell::RefCell,
     path::PathBuf,
 };
 
@@ -40,23 +41,23 @@ use std::{
 pub struct ModsPanel<'a> {
     pub mods: ModList,
     inactive: ModListing<'a>,
-    active: Arc<Mutex<ModListing<'a>>>,
+    active: Rc<RefCell<ModListing<'a>>>,
     mod_info_widget: ModInfo,
     btns: ButtonsContainer<'a>,
-    rimpy_config: Arc<RimPyConfig>,
+    rimpy_config: Rc<RimPyConfig>,
     mods_config: Arc<ModsConfig>,
     direct_vecop_rx: Receiver<MultiVecOp<'a, ModListingItem<'a>>>,
-    direct_vecop_tx: SyncSender<MultiVecOp<'a, ModListingItem<'a>>>,
+    direct_vecop_tx: Sender<MultiVecOp<'a, ModListingItem<'a>>>,
     change_mod_list_rx: Receiver<Vec<String>>,
-    change_mod_list_tx: SyncSender<Vec<String>>,
-    selected: Arc<Mutex<Option<String>>>,
+    change_mod_list_tx: Sender<Vec<String>>,
+    selected: Rc<RefCell<Option<String>>>,
 }
 
 impl ModsPanel<'_> {
     /// Makes a new mods panel
     #[must_use]
     pub fn new<const SIZE: usize>(
-        rimpy_config: Arc<RimPyConfig>,
+        rimpy_config: Rc<RimPyConfig>,
         mods_config: Arc<ModsConfig>,
         mods: ModList,
         hint_tx: &SyncSender<String>,
@@ -64,12 +65,12 @@ impl ModsPanel<'_> {
         exe_path: PathBuf,
         args: Option<String>,
     ) -> Self {
-        let selected = Arc::new(Mutex::new(None));
-        let (direct_vecop_tx, direct_vecop_rx) = sync_channel(SIZE);
-        let (change_mod_list_tx, change_mod_list_rx) = sync_channel(SIZE);
+        let selected = Rc::new(RefCell::new(None));
+        let (direct_vecop_tx, direct_vecop_rx) = channel();
+        let (change_mod_list_tx, change_mod_list_rx) = channel();
 
         let (active, inactive) = ModListing::new_pair(mods_config.activeMods.clone(), &mods, &selected, &direct_vecop_tx);
-        let active = Arc::new(Mutex::new(active));
+        let active = Rc::new(RefCell::new(active));
 
         let mod_info_widget = ModInfo::new(mods.mods.clone(), selected.clone());
 
@@ -104,7 +105,7 @@ impl ModsPanel<'_> {
     }
 
     fn run_vecops(&mut self) {
-        let mut active_guard = self.active.lock_ignore_poisoned();
+        let mut active_guard = self.active.borrow_mut();
         loop {
             let res = self.direct_vecop_rx.try_recv()
                 .map(|msg| msg.run((&mut self.inactive.items).into(), (&mut active_guard.items).into()));
@@ -118,7 +119,7 @@ impl ModsPanel<'_> {
     }
 
     fn change_mod_lists(&mut self) {
-        let mut active_guard = self.active.lock_ignore_poisoned();
+        let mut active_guard = self.active.borrow_mut();
         loop {
             match self.change_mod_list_rx.try_recv() {
                 Ok(new_mod_list) => {
@@ -139,9 +140,7 @@ impl ModsPanel<'_> {
         let mod_listing_width = 2.5 * w;
         let h = ui.available_height();
 
-        // causes a deadlock if we don't clone, could instead use a `Cell` or something seeing as
-        // it should be on the same thread anyways and then clone when passing to `writer_thread`
-        let active_cloned = self.active.lock_ignore_poisoned().clone();
+        let active_cloned = self.active.borrow().clone();
 
         TableBuilder::new(ui)
             .column(Column::exact(mod_info_width))

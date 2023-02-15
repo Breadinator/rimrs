@@ -13,8 +13,10 @@ use std::{
     sync::{
         Arc,
         Mutex,
-        mpsc::SyncSender,
+        mpsc::Sender,
     },
+    rc::Rc,
+    cell::RefCell,
 };
 use eframe::egui::{
     Widget,
@@ -38,9 +40,9 @@ impl<'a> ModListing<'a> {
     pub fn new(
         mods: Vec<String>,
         mod_meta_data: &Arc<Mutex<HashMap<String, ModMetaData>>>,
-        selected: &Arc<Mutex<Option<String>>>,
+        selected: &Rc<RefCell<Option<String>>>,
         title: Option<String>,
-        tx: SyncSender<MultiVecOp<'a, ModListingItem<'a>>>,
+        tx: Sender<MultiVecOp<'a, ModListingItem<'a>>>,
     ) -> Self {
         let id = format!("modlisting{}", fetch_inc_id());
         let items = mods.into_iter()
@@ -54,8 +56,8 @@ impl<'a> ModListing<'a> {
     pub fn new_pair(
         active_pids: Vec<String>,
         mod_list: &ModList,
-        selected: &Arc<Mutex<Option<String>>>,
-        direct_vecop_tx: &SyncSender<MultiVecOp<'a, ModListingItem<'a>>>,
+        selected: &Rc<RefCell<Option<String>>>,
+        direct_vecop_tx: &Sender<MultiVecOp<'a, ModListingItem<'a>>>,
     ) -> (Self, Self) {
         let inactive_pids = mod_list.package_ids()
             .map(|pids| {
@@ -88,8 +90,8 @@ impl<'a> ModListing<'a> {
         self,
         package_ids: Vec<String>,
         mod_meta_data: &Arc<Mutex<HashMap<String, ModMetaData>>>,
-        selected: &Arc<Mutex<Option<String>>>,
-        tx: &SyncSender<MultiVecOp<'a, ModListingItem<'a>>>,
+        selected: &Rc<RefCell<Option<String>>>,
+        tx: &Sender<MultiVecOp<'a, ModListingItem<'a>>>,
     ) -> Self {
         let items = package_ids.into_iter()
             .map(|m| ModListingItem::new(m, mod_meta_data.clone(), selected.clone(), tx.clone()))

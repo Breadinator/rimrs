@@ -11,8 +11,10 @@ use std::{
     sync::{
         Arc,
         Mutex,
-        mpsc::SyncSender,
+        mpsc::Sender,
     },
+    rc::Rc,
+    cell::RefCell,
     collections::HashMap,
 };
 use eframe::egui::{
@@ -30,8 +32,8 @@ use egui_extras::TableRow;
 pub struct ModListingItem<'a> {
     pub package_id: String,
     pub mod_meta_data: Option<Arc<Mutex<HashMap<String, ModMetaData>>>>,
-    pub selected: Arc<Mutex<Option<String>>>,
-    tx: SyncSender<MultiVecOp<'a, ModListingItem<'a>>>,
+    pub selected: Rc<RefCell<Option<String>>>,
+    tx: Sender<MultiVecOp<'a, ModListingItem<'a>>>,
 }
 
 impl<'a> ModListingItem<'a> {
@@ -39,8 +41,8 @@ impl<'a> ModListingItem<'a> {
     pub fn new(
         package_id: String,
         mod_meta_data: Arc<Mutex<HashMap<String, ModMetaData>>>,
-        selected: Arc<Mutex<Option<String>>>,
-        tx: SyncSender<MultiVecOp<'a, ModListingItem<'a>>>,
+        selected: Rc<RefCell<Option<String>>>,
+        tx: Sender<MultiVecOp<'a, ModListingItem<'a>>>,
     ) -> Self {
         Self {
             package_id,
@@ -64,19 +66,19 @@ impl<'a> ModListingItem<'a> {
 
     fn toggle_activated(&self) {
         let pid = self.package_id.clone();
-        self.tx.try_send(MultiVecOp::Swap(ModListingItem::pid_matches_predicate(pid)))
+        self.tx.send(MultiVecOp::Swap(ModListingItem::pid_matches_predicate(pid)))
             .log_if_err();
     }
 
     fn move_up(&self) {
         let pid = self.package_id.clone();
-        self.tx.try_send(MultiVecOp::MoveUp(Box::new(move |item| item.package_id == pid)))
+        self.tx.send(MultiVecOp::MoveUp(Box::new(move |item| item.package_id == pid)))
             .log_if_err();
     }
 
     fn move_down(&self) {
         let pid = self.package_id.clone();
-        self.tx.try_send(MultiVecOp::MoveDown(Box::new(move |item| item.package_id == pid)))
+        self.tx.send(MultiVecOp::MoveDown(Box::new(move |item| item.package_id == pid)))
             .log_if_err();
     }
 }
@@ -113,16 +115,13 @@ impl TableRower for &ModListingItem<'_> {
         });
 
         row.col(|ui| {
-            let lab = if let Ok(mut sel) = self.selected.try_lock() {
-                let is_selected = (*sel).clone().map_or(false, |sel| self.package_id == sel);
-                let l = ui.add(SelectableLabel::new(is_selected, self.get_display_name()));
-                if l.clicked() {
-                    *sel = Some(self.package_id.clone().to_lowercase());
-                }
-                l
-            } else {
-                ui.selectable_label(false, self.get_display_name())
-            };
+            let mut sel = self.selected.borrow_mut();
+            let is_selected = sel.clone().map_or(false, |pid| self.package_id == pid);
+            let lab = ui.add(SelectableLabel::new(is_selected, self.get_display_name()));
+
+            if lab.clicked() {
+                *sel = Some(self.package_id.clone().to_lowercase());
+            }
 
             if lab.double_clicked() {
                 self.toggle_activated();

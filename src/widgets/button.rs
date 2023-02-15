@@ -5,18 +5,15 @@ use eframe::egui::{
     Response,
 };
 use std::{
-    sync::{
-        Arc,
-        Mutex,
-        mpsc::{SyncSender, TrySendError},
-    },
+    sync::mpsc::{SyncSender, Sender, TrySendError},
     path::PathBuf,
     process::Command,
+    rc::Rc,
+    cell::RefCell,
 };
 use crate::{
     traits::{
         LogIfErr,
-        LockIgnorePoisoned,
         PushChained,
     },
     widgets::ModListing,
@@ -80,9 +77,9 @@ impl<'a> Button<'a> {
 
     /// Generates the [`Button`] that saves the active mod list to disk.
     #[must_use]
-    pub fn save(hint_tx: SyncSender<String>, writer_thread_tx: SyncSender<writer_thread::Message>, active_mod_listing_ref: Arc<Mutex<ModListing<'a>>>) -> Self {
+    pub fn save(hint_tx: SyncSender<String>, writer_thread_tx: SyncSender<writer_thread::Message>, active_mod_listing_ref: Rc<RefCell<ModListing<'a>>>) -> Self {
         let action = Box::new(move || {
-            let active_mods: Vec<String> = Vec::from(&*active_mod_listing_ref.clone().lock_ignore_poisoned());
+            let active_mods = Vec::from(&active_mod_listing_ref.borrow().clone());
             writer_thread_tx.try_send(writer_thread::Message::SetActiveMods(active_mods))
                 .and_then(|_| writer_thread_tx.try_send(writer_thread::Message::Save))
                 .log_if_err();
@@ -119,7 +116,7 @@ impl<'a> Button<'a> {
     }
 
     #[must_use]
-    pub fn import_list(hint_tx: SyncSender<String>, change_mod_list_tx: SyncSender<Vec<String>>) -> Self {
+    pub fn import_list(hint_tx: SyncSender<String>, change_mod_list_tx: Sender<Vec<String>>) -> Self {
         let hint = "Imports mod list from mod list file";
         let action = Box::new(move || {
             let path = get_mod_list_path().log_if_err()
@@ -130,7 +127,7 @@ impl<'a> Button<'a> {
             if let Some(parsed) = tinyfiledialogs::open_file_dialog("Select mod list", path, Some((&["*.xml"], "")))
                 .and_then(|p| ModsConfig::try_from(PathBuf::from(p).as_path()).log_if_err())
             {
-                change_mod_list_tx.try_send(parsed.activeMods)
+                change_mod_list_tx.send(parsed.activeMods)
                     .log_if_err();
             }
         }) as Box<dyn Fn() + 'a>;

@@ -8,12 +8,10 @@ use crate::widgets::{
     ModListing,
 };
 use std::{
-    sync::{
-        Arc,
-        Mutex,
-        mpsc::SyncSender,
-    },
+    sync::mpsc::{SyncSender, Sender},
     path::PathBuf,
+    rc::Rc,
+    cell::RefCell,
 };
 
 /// Wrapper for the [`Vec`] of [`Button`]s that appear to the right of the active mods list.
@@ -26,8 +24,8 @@ impl<'a> ButtonsContainer<'a> {
     pub fn generate(
         hint_tx: &SyncSender<String>,
         writer_thread_tx: SyncSender<crate::writer_thread::Message>,
-        change_mod_list_tx: SyncSender<Vec<String>>,
-        active_mod_listing_ref: Arc<Mutex<ModListing<'a>>>,
+        change_mod_list_tx: Sender<Vec<String>>,
+        active_mod_listing_ref: Rc<RefCell<ModListing<'a>>>,
         exe_path: PathBuf,
         args: Option<String>,
     ) -> Self {

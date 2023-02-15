@@ -1,15 +1,5 @@
 #![warn(clippy::pedantic)]
 
-use eframe::{
-    egui::{
-        self,
-        CentralPanel,
-        TopBottomPanel,
-    },
-    CreationContext,
-    App,
-};
-
 // pub mods
 pub mod panels;
 pub mod helpers;
@@ -32,14 +22,26 @@ pub use serialization::{
 // local imports
 use panels::panel_using_widget;
 use helpers::AtomicFlag;
-use std::sync::{
-    Arc,
-    mpsc::{
-        sync_channel,
-        SyncSender,
+use std::{
+    sync::{
+        Arc,
+        mpsc::{
+            sync_channel,
+            SyncSender,
+        },
     },
+    rc::Rc,
 };
 use once_cell::sync::Lazy;
+use eframe::{
+    egui::{
+        self,
+        CentralPanel,
+        TopBottomPanel,
+    },
+    CreationContext,
+    App,
+};
 
 const CHANNEL_BUFFER: usize = 32;
 
@@ -48,7 +50,7 @@ pub static CHANGED_ACTIVE_MODS: Lazy<AtomicFlag> = Lazy::new(AtomicFlag::new);
 #[non_exhaustive]
 #[derive(Debug)]
 pub struct RimRs<'a> {
-    pub rimpy_config: Arc<RimPyConfig>,
+    pub rimpy_config: Rc<RimPyConfig>,
     pub mods_config: Arc<ModsConfig>,
     paths_panel: panels::PathsPanel,
     hint_panel: panels::HintPanel,
@@ -69,7 +71,7 @@ impl<'a> RimRs<'a> {
 
         let rimpy_config = RimPyConfig::from_file().unwrap();
         let mod_list = ModList::try_from(&rimpy_config).unwrap();
-        let rimpy_config = Arc::new(rimpy_config);
+        let rimpy_config = Rc::new(rimpy_config);
 
         let mut exe_path = rimpy_config.folders.game_folder.clone().unwrap();
         exe_path.push("RimWorldWin64.exe"); // TODO: allow for 32 bit, and also non-windows
