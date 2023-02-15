@@ -16,3 +16,6 @@ pub use buttons_container::ButtonsContainer;
 mod path_label;
 pub use path_label::PathLabel;
 
+mod status;
+pub use status::Status;
+

@@ -36,7 +36,12 @@ pub enum ModListValidationResult {
     },
 }
 
-impl ModListValidator<'_> {
+impl<'mmd> ModListValidator<'mmd> {
+    #[must_use]
+    pub fn new(mod_meta_data: &'mmd Arc<Mutex<HashMap<String, ModMetaData>>>) -> Self {
+        Self::from(mod_meta_data)
+    }
+
     #[must_use]
     pub fn validate(&self, mod_list: &[String]) -> ModListValidationResult {
         let mod_list: Vec<_> = mod_list.iter().map(|pid| pid.to_lowercase()).collect();

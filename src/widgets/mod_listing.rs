@@ -5,7 +5,7 @@ use crate::{
     helpers::{
         fetch_inc_id,
         vec_ops::MultiVecOp,
-    },
+    }, ModList,
 };
 use std::{
     collections::HashMap,
@@ -49,6 +49,27 @@ impl<'a> ModListing<'a> {
             .collect();
 
         Self { id, items, title, tx }
+    }
+
+    #[must_use]
+    pub fn new_pair(
+        active_pids: Vec<String>,
+        mod_list: &ModList,
+        selected: &Arc<Mutex<Option<String>>>,
+        direct_vecop_tx: &SyncSender<MultiVecOp<'a, ModListingItem<'a>>>,
+    ) -> (Self, Self) {
+        let inactive_pids: Vec<_> = mod_list.package_ids()
+            .map(|pids| {
+                pids.into_iter()
+                    .filter(|pid| !active_pids.contains(pid))
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        let active = ModListing::new(active_pids, &mod_list.mods, selected, Some(String::from("Active")), direct_vecop_tx.clone());
+        let inactive = ModListing::new(inactive_pids, &mod_list.mods, selected, Some(String::from("Inactive")), direct_vecop_tx.clone());
+
+        (active, inactive)
     }
 
     #[must_use]

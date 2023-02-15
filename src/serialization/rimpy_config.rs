@@ -1,6 +1,10 @@
-use crate::serialization::ini::{
-    INIReader,
-    INIError,
+use crate::{
+    serialization::ini::{
+        INIReader,
+        INIError,
+    },
+    helpers::{paths::push_mods_config_path, config::get_config_dir},
+    traits::LogIfErr,
 };
 use std::{
     collections::HashMap,
@@ -26,6 +30,14 @@ pub struct RimPyConfigFolders {
     pub steamcmd: Option<PathBuf>,
 }
 
+impl RimPyConfigFolders {
+    #[must_use]
+    pub fn mods_config_path(&self) -> Option<PathBuf> {
+        get_config_dir().log_if_err()
+            .map(push_mods_config_path)
+    }
+}
+
 impl RimPyConfig {
     /// Tries to read the rimpy config from its `config.ini` file.
     ///
@@ -46,6 +58,11 @@ impl RimPyConfig {
     pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, INIError> {
         Self::try_from(INIReader::new(path).map_err(INIError::IOError)?)
             .map_err(Into::into)
+    }
+
+    #[must_use]
+    pub fn mods_config_path(&self) -> Option<PathBuf> {
+        self.folders.mods_config_path()
     }
 }
 

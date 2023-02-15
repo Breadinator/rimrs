@@ -23,7 +23,7 @@ use crate::{
     traits::LogIfErr,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Message {
     Stop,
     Save,

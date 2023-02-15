@@ -1,5 +1,8 @@
 use std::{
-    path::PathBuf,
+    path::{
+        PathBuf,
+        Path,
+    },
     ffi::OsString,
     sync::{
         Mutex,
@@ -165,6 +168,30 @@ impl<T> LockIgnorePoisoned<T> for Mutex<T> {
             Err(TryLockError::Poisoned(psn)) => Ok(psn.into_inner()),
             Err(TryLockError::WouldBlock) => Err(TryLockIgnorePoisonedError),
         }
+    }
+}
+
+pub trait PopChained {
+    #[must_use]
+    fn pop_chained(self) -> Self;
+}
+
+pub trait PushChained<T> {
+    #[must_use]
+    fn push_chained(self, item: T) -> Self;
+}
+
+impl PopChained for PathBuf {
+    fn pop_chained(mut self) -> Self {
+        self.pop();
+        self
+    }
+}
+
+impl<P: AsRef<Path>> PushChained<P> for PathBuf {
+    fn push_chained(mut self, item: P) -> Self {
+        self.push(item);
+        self
     }
 }
 

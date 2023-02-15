@@ -2,6 +2,7 @@ use std::{
     env::{self, VarError},
     path::PathBuf,
 };
+use crate::helpers::paths::push_mod_lists_path;
 
 /// Gets the `RimPy` config directory.
 /// Its main config file is in `config.ini`, and mod lists are in `ModLists/`
@@ -38,5 +39,14 @@ pub fn get_config_ini_path() -> Result<PathBuf, VarError> {
     let mut p = get_config_dir()?;
     p.push("config.ini");
     Ok(p)
+}
+
+/// Gets the `ModList` path
+///
+/// # Errors
+/// See [`get_config_dir`]
+pub fn get_mod_list_path() -> Result<PathBuf, VarError> {
+    get_config_dir()
+        .map(push_mod_lists_path)
 }
 

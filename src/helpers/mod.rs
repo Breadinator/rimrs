@@ -9,6 +9,7 @@ pub mod config;
 pub mod traits;
 pub mod ui;
 pub mod vec_ops;
+pub mod paths;
 
 mod vec_mut_accessor;
 pub use vec_mut_accessor::VecMutAccessor;

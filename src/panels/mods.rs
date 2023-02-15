@@ -18,7 +18,7 @@ use crate::{
         ButtonsContainer,
     },
     helpers::vec_ops::MultiVecOp,
-    traits::LockIgnorePoisoned,
+    traits::LockIgnorePoisoned, writer_thread,
 };
 use std::{
     sync::{
@@ -44,7 +44,11 @@ pub struct ModsPanel<'a> {
     btns: ButtonsContainer<'a>,
     rimpy_config: Arc<RimPyConfig>,
     mods_config: Arc<ModsConfig>,
-    rx: Receiver<MultiVecOp<'a, ModListingItem<'a>>>,
+    direct_vecop_rx: Receiver<MultiVecOp<'a, ModListingItem<'a>>>,
+    direct_vecop_tx: SyncSender<MultiVecOp<'a, ModListingItem<'a>>>,
+    change_mod_list_rx: Receiver<Vec<String>>,
+    change_mod_list_tx: SyncSender<Vec<String>>,
+    selected: Arc<Mutex<Option<String>>>,
 }
 
 impl ModsPanel<'_> {
@@ -55,23 +59,27 @@ impl ModsPanel<'_> {
         mods_config: Arc<ModsConfig>,
         mods: ModList,
         hint_tx: SyncSender<String>,
-        writer_thread_tx: SyncSender<crate::writer_thread::Message>,
+        writer_thread_tx: SyncSender<writer_thread::Message>,
         exe_path: PathBuf,
         args: Option<String>,
     ) -> Self {
         let selected = Arc::new(Mutex::new(None));
-        let (tx, rx) = sync_channel(SIZE);
+        let (direct_vecop_tx, direct_vecop_rx) = sync_channel(SIZE);
+        let (change_mod_list_tx, change_mod_list_rx) = sync_channel(SIZE);
 
-        let active_mods = mods_config.activeMods.clone();
-        let inactive_pids = mods.package_ids().map(|pids| pids.into_iter().filter(|pid| !active_mods.contains(pid)).collect())
-            .unwrap_or_default();
+        let (active, inactive) = ModListing::new_pair(mods_config.activeMods.clone(), &mods, &selected, &direct_vecop_tx);
+        let active = Arc::new(Mutex::new(active));
 
-        let active = Arc::new(Mutex::new(ModListing::new(active_mods, &mods.mods, &selected, Some(String::from("Active")), tx.clone())));
-        let inactive = ModListing::new(inactive_pids, &mods.mods, &selected, Some(String::from("Inactive")), tx);
+        let mod_info_widget = ModInfo::new(mods.mods.clone(), selected.clone());
 
-        let mod_info_widget = ModInfo::new(mods.mods.clone(), selected);
-
-        let btns = ButtonsContainer::generate(hint_tx, writer_thread_tx, active.clone(), exe_path, args);
+        let btns = ButtonsContainer::generate(
+            hint_tx,
+            writer_thread_tx,
+            change_mod_list_tx.clone(),
+            active.clone(),
+            exe_path,
+            args,
+        );
 
         Self {
             mods,
@@ -81,21 +89,44 @@ impl ModsPanel<'_> {
             btns,
             rimpy_config,
             mods_config,
-            rx,
+            direct_vecop_rx,
+            direct_vecop_tx,
+            change_mod_list_rx,
+            change_mod_list_tx,
+            selected,
         }
     }
 
     fn tick(&mut self) {
+        self.run_vecops();
+        self.change_mod_lists();
+    }
+
+    fn run_vecops(&mut self) {
         let mut active_guard = self.active.lock_ignore_poisoned();
         loop {
-            let res = self.rx.try_recv().map(|msg| msg.run((&mut self.inactive.items).into(), (&mut active_guard.items).into()));
+            let res = self.direct_vecop_rx.try_recv()
+                .map(|msg| msg.run((&mut self.inactive.items).into(), (&mut active_guard.items).into()));
             match res {
                 Ok(Ok(_)) => crate::CHANGED_ACTIVE_MODS.set(),
-                Ok(Err(err)) => {
-                    log::error!("{err:?}");
-                },
+                Ok(Err(err)) => log::error!("{err:?}"),
                 Err(TryRecvError::Empty) => break,
-                Err(TryRecvError::Disconnected) => panic!("mods panel mpsc unexpectedly disconnected"),
+                Err(TryRecvError::Disconnected) => panic!("mods panel mpsc channel unexpectedly disconnected"),
+            }
+        }
+    }
+
+    fn change_mod_lists(&mut self) {
+        let mut active_guard = self.active.lock_ignore_poisoned();
+        loop {
+            match self.change_mod_list_rx.try_recv() {
+                Ok(new_mod_list) => {
+                    let (active, inactive) = ModListing::new_pair(new_mod_list, &self.mods, &self.selected, &self.direct_vecop_tx);
+                    *active_guard = active;
+                    self.inactive = inactive;
+                }
+                Err(TryRecvError::Empty) => break,
+                Err(TryRecvError::Disconnected) => panic!("mods panel mpsc channel unexpectedly disconnected"),
             }
         }
     }

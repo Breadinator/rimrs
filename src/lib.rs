@@ -17,6 +17,7 @@ pub use helpers::traits;
 pub mod serialization;
 pub mod widgets;
 pub mod writer_thread;
+pub mod validator_thread;
 
 // mod forward reexports
 mod mods;
