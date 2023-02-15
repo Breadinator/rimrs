@@ -91,7 +91,7 @@ impl<'a> RimRs<'a> {
             rimpy_config.clone(),
             mods_config.clone(),
             mod_list,
-            hint_tx,
+            &hint_tx,
             writer_thread_tx,
             exe_path,
             cmd_args,

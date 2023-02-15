@@ -24,7 +24,7 @@ impl<'a> ButtonsContainer<'a> {
     /// Creates the various buttons that appear to the right of the active mods listing.
     #[must_use]
     pub fn generate(
-        hint_tx: SyncSender<String>,
+        hint_tx: &SyncSender<String>,
         writer_thread_tx: SyncSender<crate::writer_thread::Message>,
         change_mod_list_tx: SyncSender<Vec<String>>,
         active_mod_listing_ref: Arc<Mutex<ModListing<'a>>>,
@@ -34,9 +34,11 @@ impl<'a> ButtonsContainer<'a> {
         Self(vec![
              Button::clear(hint_tx.clone()),
              Button::sort(hint_tx.clone()),
+
+             Button::import_list(hint_tx.clone(), change_mod_list_tx),
+
              Button::save(hint_tx.clone(), writer_thread_tx, active_mod_listing_ref),
              Button::run(hint_tx.clone(), exe_path, args),
-             Button::import_list(hint_tx, change_mod_list_tx),
         ])
     }
 }

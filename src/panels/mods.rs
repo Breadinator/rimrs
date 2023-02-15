@@ -58,7 +58,7 @@ impl ModsPanel<'_> {
         rimpy_config: Arc<RimPyConfig>,
         mods_config: Arc<ModsConfig>,
         mods: ModList,
-        hint_tx: SyncSender<String>,
+        hint_tx: &SyncSender<String>,
         writer_thread_tx: SyncSender<writer_thread::Message>,
         exe_path: PathBuf,
         args: Option<String>,
@@ -124,6 +124,7 @@ impl ModsPanel<'_> {
                     let (active, inactive) = ModListing::new_pair(new_mod_list, &self.mods, &self.selected, &self.direct_vecop_tx);
                     *active_guard = active;
                     self.inactive = inactive;
+                    crate::CHANGED_ACTIVE_MODS.set();
                 }
                 Err(TryRecvError::Empty) => break,
                 Err(TryRecvError::Disconnected) => panic!("mods panel mpsc channel unexpectedly disconnected"),
