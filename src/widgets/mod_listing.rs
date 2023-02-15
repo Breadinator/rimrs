@@ -5,7 +5,8 @@ use crate::{
     helpers::{
         fetch_inc_id,
         vec_ops::MultiVecOp,
-    }, ModList,
+    },
+    ModList,
 };
 use std::{
     collections::HashMap,
@@ -29,8 +30,6 @@ pub struct ModListing<'a> {
     id: String,
     pub items: Vec<ModListingItem<'a>>,
     pub title: Option<String>,
-    #[allow(dead_code)] // just holding onto it to avoid TryRecvError::Disconnected
-    tx: SyncSender<MultiVecOp<'a, ModListingItem<'a>>>,
 }
 
 impl<'a> ModListing<'a> {
@@ -48,7 +47,7 @@ impl<'a> ModListing<'a> {
             .map(|m| ModListingItem::new(m, mod_meta_data.clone(), selected.clone(), tx.clone()))
             .collect();
 
-        Self { id, items, title, tx }
+        Self { id, items, title }
     }
 
     #[must_use]
@@ -58,7 +57,7 @@ impl<'a> ModListing<'a> {
         selected: &Arc<Mutex<Option<String>>>,
         direct_vecop_tx: &SyncSender<MultiVecOp<'a, ModListingItem<'a>>>,
     ) -> (Self, Self) {
-        let inactive_pids: Vec<_> = mod_list.package_ids()
+        let inactive_pids = mod_list.package_ids()
             .map(|pids| {
                 pids.into_iter()
                     .filter(|pid| !active_pids.contains(pid))
@@ -66,8 +65,8 @@ impl<'a> ModListing<'a> {
             })
             .unwrap_or_default();
 
-        let active = ModListing::new(active_pids, &mod_list.mods, selected, Some(String::from("Active")), direct_vecop_tx.clone());
-        let inactive = ModListing::new(inactive_pids, &mod_list.mods, selected, Some(String::from("Inactive")), direct_vecop_tx.clone());
+        let active = Self::new(active_pids, &mod_list.mods, selected, Some(String::from("Active")), direct_vecop_tx.clone());
+        let inactive = Self::new(inactive_pids, &mod_list.mods, selected, Some(String::from("Inactive")), direct_vecop_tx.clone());
 
         (active, inactive)
     }
@@ -114,11 +113,7 @@ impl Widget for &ModListing<'_> {
                 .column(egui_extras::Column::exact(BUTTON_WIDTH))
                 .column(egui_extras::Column::remainder())
                 .cell_layout(Layout::left_to_right(Align::Min).with_main_wrap(false))
-                .body(|mut body| {
-                    for item in &self.items {
-                        body.row(ROW_HEIGHT, |r| item.table_row(r));
-                    }
-                });
+                .body(|body| body.rows(ROW_HEIGHT, self.items.len(), |i, row| self.items[i].table_row(row)));
         }).response
     }
 }

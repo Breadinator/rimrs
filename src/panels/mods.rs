@@ -18,7 +18,8 @@ use crate::{
         ButtonsContainer,
     },
     helpers::vec_ops::MultiVecOp,
-    traits::LockIgnorePoisoned, writer_thread,
+    traits::LockIgnorePoisoned,
+    writer_thread,
 };
 use std::{
     sync::{

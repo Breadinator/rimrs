@@ -16,7 +16,8 @@ use std::{
 use crate::{
     traits::{
         LogIfErr,
-        LockIgnorePoisoned, PushChained,
+        LockIgnorePoisoned,
+        PushChained,
     },
     widgets::ModListing,
     writer_thread,
