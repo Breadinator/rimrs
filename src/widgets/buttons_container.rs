@@ -30,7 +30,7 @@ impl<'a> ButtonsContainer<'a> {
         args: Option<String>,
     ) -> Self {
         Self(vec![
-             Button::clear(hint_tx.clone()),
+             Button::clear(hint_tx.clone(), change_mod_list_tx.clone()),
              Button::sort(hint_tx.clone()),
 
              Button::import_list(hint_tx.clone(), change_mod_list_tx),

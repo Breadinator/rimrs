@@ -29,8 +29,15 @@ use std::{
 impl<'a> Button<'a> {
     /// Generates the [`Button`] that clears the active mod list.
     #[must_use]
-    pub fn clear(hint_tx: SyncSender<String>) -> Self {
-        let action = Box::new(|| log::debug!("Unimplemented 😇")) as Box<dyn Fn() + 'a>;
+    pub fn clear(hint_tx: SyncSender<String>, change_mod_list_tx: Sender<Vec<String>>) -> Self {
+        let action = Box::new(move || {
+            change_mod_list_tx.send(vec![
+                String::from("ludeon.rimworld"),
+                String::from("ludeon.rimworld.royalty"),
+                String::from("ludeon.rimworld.ideology"),
+                String::from("ludeon.rimworld.biotech"),
+            ]).log_if_err();
+        }) as Box<dyn Fn() + 'a>;
         let hint = "Remove all mods, except Core and DLCs";
 
         Self::builder("Clear")
@@ -114,5 +121,17 @@ impl<'a> Button<'a> {
             .build()
     }
 
+    #[must_use]
+    pub fn export_list(hint_tx: SyncSender<String>) -> Self {
+        let hint = "Exports mod list to file";
+        let action = Box::new(move || {
+
+        }) as Box<dyn Fn() + 'a>;
+
+        Self::builder("Export list")
+            .hint(hint, hint_tx)
+            .action(action)
+            .build()
+    }
 }
 
