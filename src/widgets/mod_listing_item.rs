@@ -6,6 +6,7 @@ use crate::{
         LockIgnorePoisoned,
     },
     helpers::vec_ops::MultiVecOp,
+    glyphs,
 };
 use std::{
     sync::{
@@ -101,14 +102,14 @@ impl<'a> Widget for &ModListingItem<'a> {
 impl TableRower for &ModListingItem<'_> {
     fn table_row(self, mut row: TableRow) {
         row.col(|ui| {
-            let up = ui.selectable_label(false, "U");
+            let up = ui.selectable_label(false, glyphs::ARROW_UP);
             if up.clicked() {
                 self.move_up();
             }
         });
 
         row.col(|ui| {
-            let down = ui.selectable_label(false, "D");
+            let down = ui.selectable_label(false, glyphs::ARROW_DOWN);
             if down.clicked() {
                 self.move_down();
             }
@@ -127,13 +128,13 @@ impl TableRower for &ModListingItem<'_> {
                 self.toggle_activated();
             }
 
-            if lab.middle_clicked() {
-                self.move_up();
-            }
+            // if lab.middle_clicked() {
+            //     self.move_up();
+            // }
 
-            if lab.secondary_clicked() {
-                self.move_down();
-            }
+            // if lab.secondary_clicked() {
+            //     self.move_down();
+            // }
         });
     }
 }

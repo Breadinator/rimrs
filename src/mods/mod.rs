@@ -4,6 +4,9 @@ pub use mod_meta_data::ModMetaData;
 mod mod_list;
 pub use mod_list::*;
 
+mod validation;
+pub use validation::*;
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 #[allow(non_snake_case)]
 pub struct Dependency {

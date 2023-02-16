@@ -16,7 +16,7 @@ use std::{
 use crate::{
     ModMetaData,
     traits::LogIfErr,
-    helpers::{
+    mods::{
         ModListValidator,
         ModListValidationResult,
     },

@@ -1,5 +1,5 @@
 use std::sync::mpsc::{Receiver, SyncSender, self};
-use crate::{helpers::ModListValidationResult, validator_thread, traits::LogIfErr};
+use crate::{mods::ModListValidationResult, validator_thread, traits::LogIfErr};
 use eframe::egui::{Widget, Response, Ui};
 use egui_extras::{TableBuilder, Column};
 

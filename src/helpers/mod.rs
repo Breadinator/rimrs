@@ -17,9 +17,6 @@ pub use vec_mut_accessor::VecMutAccessor;
 mod atomic_flag;
 pub use atomic_flag::AtomicFlag;
 
-mod mod_list_validation;
-pub use mod_list_validation::*;
-
 /// Used to represent inactive mods with [`Side::Left`] and active mods with [`Side::Right`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Side {
