@@ -122,10 +122,23 @@ impl<'a> Button<'a> {
     }
 
     #[must_use]
-    pub fn export_list(hint_tx: SyncSender<String>) -> Self {
+    pub fn export_list(hint_tx: SyncSender<String>, writer_thread_tx: SyncSender<writer_thread::Message>, active_mod_listing_ref: Rc<RefCell<ModListing<'a>>>) -> Self {
         let hint = "Exports mod list to file";
         let action = Box::new(move || {
+            let mods = active_mod_listing_ref.borrow().items.iter()
+                .map(|item| &item.package_id)
+                .map(Clone::clone)
+                .collect();
 
+            let mod_list_path = get_mod_list_path().log_if_err()
+                .map(|p| p.push_chained(""));
+            let mod_list_path = mod_list_path.as_ref()
+                .and_then(path_to_str)
+                .unwrap_or_default();
+
+            tinyfiledialogs::save_file_dialog_with_filter("Save file list", mod_list_path, &["*.xml"], "")
+                .map(|save_path| writer_thread_tx.try_send(writer_thread::Message::WriteTo(PathBuf::from(save_path), mods)))
+                .map(LogIfErr::log_if_err);
         }) as Box<dyn Fn() + 'a>;
 
         Self::builder("Export list")

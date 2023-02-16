@@ -34,6 +34,7 @@ impl<'a> ButtonsContainer<'a> {
              Button::sort(hint_tx.clone()),
 
              Button::import_list(hint_tx.clone(), change_mod_list_tx),
+             Button::export_list(hint_tx.clone(), writer_thread_tx.clone(), active_mod_listing_ref.clone()),
 
              Button::save(hint_tx.clone(), writer_thread_tx, active_mod_listing_ref),
              Button::run(hint_tx.clone(), exe_path, args),
