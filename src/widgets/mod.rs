@@ -10,7 +10,7 @@ pub use mod_info::ModInfo;
 
 mod button;
 pub use button::{ Button, ButtonBuilder };
-mod buttons_generators;
+mod button_generators;
 
 mod buttons_container;
 pub use buttons_container::ButtonsContainer;
