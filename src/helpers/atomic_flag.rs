@@ -1,9 +1,6 @@
 use std::sync::{
+    atomic::{AtomicBool, Ordering},
     Arc,
-    atomic::{
-        AtomicBool,
-        Ordering,
-    },
 };
 
 #[derive(Clone, Debug, Default)]
@@ -28,4 +25,3 @@ impl AtomicFlag {
         self.0.store(false, Ordering::Release);
     }
 }
-

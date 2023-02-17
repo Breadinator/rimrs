@@ -1,19 +1,10 @@
+use crate::{ModMetaData, RimPyConfig};
 use std::{
     collections::HashMap,
-    sync::{
-        Arc,
-        Mutex,
-    },
-    path::PathBuf,
+    fs::{self, DirEntry},
     io,
-    fs::{
-        self,
-        DirEntry,
-    },
-};
-use crate::{
-    ModMetaData,
-    RimPyConfig,
+    path::PathBuf,
+    sync::{Arc, Mutex},
 };
 
 #[non_exhaustive]
@@ -33,8 +24,9 @@ impl ModList {
             for mod_dir in fs::read_dir(dir)? {
                 if let Ok(p) = mod_dir.as_ref().map(DirEntry::path) {
                     if mod_dir
-                            .and_then(|md| md.file_type())
-                            .map_or(false, |ft| ft.is_dir()) {
+                        .and_then(|md| md.file_type())
+                        .map_or(false, |ft| ft.is_dir())
+                    {
                         paths.push(p);
                     }
                 }
@@ -46,7 +38,8 @@ impl ModList {
             path.push("About.xml");
         }
         paths.retain(|path| path.exists());
-        let mods: Vec<_> = paths.into_iter()
+        let mods: Vec<_> = paths
+            .into_iter()
             .filter_map(|path| ModMetaData::read(path).ok())
             .collect();
         Ok(ModList::from(mods))
@@ -56,19 +49,19 @@ impl ModList {
     /// Returns `None` if there is a [`std::sync::PoisonError`].
     #[must_use]
     pub fn package_ids(&self) -> Option<Vec<String>> {
-        self.mods.lock().ok().map(|map| {
-            map.keys()
-                .map(String::clone)
-                .collect()
-        })
+        self.mods
+            .lock()
+            .ok()
+            .map(|map| map.keys().map(String::clone).collect())
     }
 }
 
-impl<I: IntoIterator<Item=ModMetaData>> From<I> for ModList {
+impl<I: IntoIterator<Item = ModMetaData>> From<I> for ModList {
     fn from(mods_iter: I) -> Self {
-        let mods: HashMap<String, ModMetaData> = mods_iter.into_iter()
-              .filter_map(|m| m.packageId.clone().map(|pid| (pid.to_lowercase(), m)))
-              .collect();
+        let mods: HashMap<String, ModMetaData> = mods_iter
+            .into_iter()
+            .filter_map(|m| m.packageId.clone().map(|pid| (pid.to_lowercase(), m)))
+            .collect();
 
         ModList {
             mods: Arc::new(Mutex::new(mods)),
@@ -95,4 +88,3 @@ impl TryFrom<&RimPyConfig> for ModList {
         ModList::from_dirs(paths)
     }
 }
-

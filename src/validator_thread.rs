@@ -1,32 +1,22 @@
+use crate::{
+    mods::{ModListValidationResult, ModListValidator},
+    traits::LogIfErr,
+    ModMetaData,
+};
 use std::{
-    thread::{
-        self,
-        JoinHandle,
-    },
     collections::HashMap,
     sync::{
-        Arc,
-        Mutex,
-        mpsc::{
-            Receiver,
-            SyncSender,
-        },
+        mpsc::{Receiver, SyncSender},
+        Arc, Mutex,
     },
-};
-use crate::{
-    ModMetaData,
-    traits::LogIfErr,
-    mods::{
-        ModListValidator,
-        ModListValidationResult,
-    },
+    thread::{self, JoinHandle},
 };
 
 #[derive(Debug, Clone)]
 pub enum Message {
     Stop,
     NewModMetaData(Arc<Mutex<HashMap<String, ModMetaData>>>),
-    Validate(Vec<String>, SyncSender<ModListValidationResult>)
+    Validate(Vec<String>, SyncSender<ModListValidationResult>),
 }
 
 #[must_use]
@@ -49,8 +39,11 @@ fn validator_thread_fn(rx: Receiver<Message>) {
 }
 
 #[allow(clippy::needless_pass_by_value)]
-fn validate(mmd: &Arc<Mutex<HashMap<String, ModMetaData>>>, mod_list: &[String], tx: SyncSender<ModListValidationResult>) {
+fn validate(
+    mmd: &Arc<Mutex<HashMap<String, ModMetaData>>>,
+    mod_list: &[String],
+    tx: SyncSender<ModListValidationResult>,
+) {
     tx.send(ModListValidator::new(mmd).validate(mod_list))
         .log_if_err();
 }
-

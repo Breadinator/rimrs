@@ -1,14 +1,11 @@
 use crate::{
-    serialization::ini::{
-        INIReader,
-        INIError,
-    },
-    helpers::{paths::push_mods_config_path, config::get_config_dir},
+    helpers::{config::get_config_dir, paths::push_mods_config_path},
+    serialization::ini::{INIError, INIReader},
     traits::LogIfErr,
 };
 use std::{
     collections::HashMap,
-    path::{PathBuf, Path},
+    path::{Path, PathBuf},
 };
 use thiserror::Error;
 
@@ -33,8 +30,7 @@ pub struct RimPyConfigFolders {
 impl RimPyConfigFolders {
     #[must_use]
     pub fn mods_config_path(&self) -> Option<PathBuf> {
-        get_config_dir().log_if_err()
-            .map(push_mods_config_path)
+        get_config_dir().log_if_err().map(push_mods_config_path)
     }
 }
 
@@ -46,8 +42,7 @@ impl RimPyConfig {
     /// * If it can't open the file (e.g. doesn't exist, perms)
     /// * If it can't parse that file as INI-syntax
     pub fn from_file() -> Result<Self, ReadRimPyConfigError> {
-        Self::try_from(INIReader::from_rimpy_config_ini()?)
-            .map_err(Into::into)
+        Self::try_from(INIReader::from_rimpy_config_ini()?).map_err(Into::into)
     }
 
     /// Tries to read the rimpy config from a given path.
@@ -56,8 +51,7 @@ impl RimPyConfig {
     /// * If it can't open the file (e.g. doesn't exist, perms)
     /// * If it can't parse that file as INI-syntax
     pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, INIError> {
-        Self::try_from(INIReader::new(path).map_err(INIError::IOError)?)
-            .map_err(Into::into)
+        Self::try_from(INIReader::new(path).map_err(INIError::IOError)?).map_err(Into::into)
     }
 
     #[must_use]
@@ -75,17 +69,15 @@ impl TryFrom<INIReader<'_>> for RimPyConfig {
         for kvp in reader {
             let kvp = kvp?; // kinda annoying
             match kvp.section.as_deref() {
-                Some("Folders") => {
-                    match kvp.key.as_str() {
-                        "Config folder" => conf.folders.config_folder = Some(PathBuf::from(kvp.value)),
-                        "Game folder" => conf.folders.game_folder = Some(PathBuf::from(kvp.value)),
-                        "Local mods" => conf.folders.local_mods = Some(PathBuf::from(kvp.value)),
-                        "Expansions" => conf.folders.expansions = Some(PathBuf::from(kvp.value)),
-                        "Steam mods" => conf.folders.steam_mods = Some(PathBuf::from(kvp.value)),
-                        "SteamCMD" => conf.folders.steamcmd = Some(PathBuf::from(kvp.value)),
-                        _ => {}
-                    }
-                }
+                Some("Folders") => match kvp.key.as_str() {
+                    "Config folder" => conf.folders.config_folder = Some(PathBuf::from(kvp.value)),
+                    "Game folder" => conf.folders.game_folder = Some(PathBuf::from(kvp.value)),
+                    "Local mods" => conf.folders.local_mods = Some(PathBuf::from(kvp.value)),
+                    "Expansions" => conf.folders.expansions = Some(PathBuf::from(kvp.value)),
+                    "Steam mods" => conf.folders.steam_mods = Some(PathBuf::from(kvp.value)),
+                    "SteamCMD" => conf.folders.steamcmd = Some(PathBuf::from(kvp.value)),
+                    _ => {}
+                },
                 Some("Colors") => {
                     colors.insert(kvp.key, kvp.value);
                 }
@@ -111,4 +103,3 @@ pub enum ReadRimPyConfigError {
     #[error("{0}")]
     INIError(#[from] crate::serialization::ini::INIError),
 }
-

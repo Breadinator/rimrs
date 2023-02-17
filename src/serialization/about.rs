@@ -1,20 +1,11 @@
 use crate::{
-    mods::{
-        ModMetaData,
-        Dependency,
-    },
     helpers::strip_bom,
+    mods::{Dependency, ModMetaData},
 };
-use std::{
-    collections::HashSet,
-    convert::AsRef,
-};
+use std::{collections::HashSet, convert::AsRef};
 use xml::{
-    reader::{
-        EventReader,
-        XmlEvent,
-    },
     name::OwnedName,
+    reader::{EventReader, XmlEvent},
 };
 
 /// Parses the About.xml file from its reader.
@@ -34,11 +25,17 @@ pub fn parse_about(bytes: &[u8]) -> Result<ModMetaData, xml::reader::Error> {
 
     for event in reader {
         match event? {
-            XmlEvent::StartElement { name, .. } => { xml_path.push(name.local_name); }
-            XmlEvent::EndElement { name } => { end_element(&mut xml_path, &name, &mut mem); }
-            XmlEvent::Characters(text) => { add_data_to_mmd(&mut mmd, &xml_path, text, &mut mem); }
+            XmlEvent::StartElement { name, .. } => {
+                xml_path.push(name.local_name);
+            }
+            XmlEvent::EndElement { name } => {
+                end_element(&mut xml_path, &name, &mut mem);
+            }
+            XmlEvent::Characters(text) => {
+                add_data_to_mmd(&mut mmd, &xml_path, text, &mut mem);
+            }
             XmlEvent::EndDocument => break,
-            _ => {},
+            _ => {}
         }
     }
 
@@ -93,15 +90,13 @@ fn add_data_to_mmd(mmd: &mut ModMetaData, xml_path: &[String], text: String, mem
         }
 
         // mod dependencies
-        Some("modDependencies") => {
-            match xml_path.get(3).map(AsRef::as_ref) {
-                Some("packageId") => mem.curr_modDependencies.packageId = Some(text),
-                Some("displayName") => mem.curr_modDependencies.displayName = Some(text),
-                Some("steamWorkshopUrl") => mem.curr_modDependencies.steamWorkshopUrl = Some(text),
-                Some("downloadUrl") => mem.curr_modDependencies.downloadUrl = Some(text),
-                _ => {}
-            }
-        }
+        Some("modDependencies") => match xml_path.get(3).map(AsRef::as_ref) {
+            Some("packageId") => mem.curr_modDependencies.packageId = Some(text),
+            Some("displayName") => mem.curr_modDependencies.displayName = Some(text),
+            Some("steamWorkshopUrl") => mem.curr_modDependencies.steamWorkshopUrl = Some(text),
+            Some("downloadUrl") => mem.curr_modDependencies.downloadUrl = Some(text),
+            _ => {}
+        },
 
         // anything else
         _ => {
@@ -111,8 +106,7 @@ fn add_data_to_mmd(mmd: &mut ModMetaData, xml_path: &[String], text: String, mem
 }
 
 fn end_element(xml_path: &mut Vec<String>, name: &OwnedName, mem: &mut ParsingMem) {
-    if xml_path.get(1).map(AsRef::as_ref) == Some("modDependencies")
-            && name.local_name == "li" {
+    if xml_path.get(1).map(AsRef::as_ref) == Some("modDependencies") && name.local_name == "li" {
         let dep = mem.curr_modDependencies.clone();
         mem.modDependencies.insert(dep);
 
@@ -170,4 +164,3 @@ impl ParsingMem {
         }
     }
 }
-

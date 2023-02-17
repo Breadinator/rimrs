@@ -1,16 +1,7 @@
+use crate::{traits::LockIgnorePoisoned, ModMetaData};
 use std::{
-    sync::{
-        Arc,
-        Mutex,
-    },
-    collections::{
-        HashMap,
-        HashSet,
-    },
-};
-use crate::{
-    ModMetaData,
-    traits::LockIgnorePoisoned,
+    collections::{HashMap, HashSet},
+    sync::{Arc, Mutex},
 };
 
 pub struct ModListValidator<'mmd> {
@@ -115,20 +106,34 @@ impl ModListValidationResult {
 
     #[must_use]
     pub fn is_err(&self) -> bool {
-        matches!(self, Self::Err { warnings: _, errors: _ })
+        matches!(
+            self,
+            Self::Err {
+                warnings: _,
+                errors: _
+            }
+        )
     }
 
     #[must_use]
     pub fn warnings(&self) -> Option<&Vec<String>> {
         match self {
             Self::Ok => None,
-            Self::Warn { warnings } | Self::Err { warnings, errors: _ } => Some(warnings),
+            Self::Warn { warnings }
+            | Self::Err {
+                warnings,
+                errors: _,
+            } => Some(warnings),
         }
     }
 
     #[must_use]
     pub fn errors(&self) -> Option<&Vec<String>> {
-        if let Self::Err { warnings: _, errors } = self {
+        if let Self::Err {
+            warnings: _,
+            errors,
+        } = self
+        {
             Some(errors)
         } else {
             None
@@ -145,8 +150,7 @@ impl From<ModListValidationResult> for Result<(), Vec<String>> {
                 let mut e = warnings;
                 e.extend(errors);
                 Err(e)
-            },
+            }
         }
     }
 }
-

@@ -15,4 +15,3 @@ pub struct Dependency {
     pub downloadUrl: Option<String>,
     pub steamWorkshopUrl: Option<String>,
 }
-

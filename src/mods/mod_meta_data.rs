@@ -1,20 +1,11 @@
-use std::{
-    collections::{
-        HashMap,
-        HashSet,
-    },
-    path::{
-        Path,
-        PathBuf,
-    },
-    fs,
-};
 use crate::{
     mods::Dependency,
-    serialization::{
-        ParseXMLError,
-        about::parse_about,
-    },
+    serialization::{about::parse_about, ParseXMLError},
+};
+use std::{
+    collections::{HashMap, HashSet},
+    fs,
+    path::{Path, PathBuf},
 };
 
 /// The mod metadata contained in its About.xml file.
@@ -60,10 +51,8 @@ impl ModMetaData {
     pub fn read<P: AsRef<Path>>(path: P) -> Result<Self, ParseXMLError> {
         log::debug!("Parsing {:?}", path.as_ref());
         let file = fs::read(path.as_ref())?;
-        let mut mmd = parse_about(&file)
-            .map_err(ParseXMLError::from)?;
+        let mut mmd = parse_about(&file).map_err(ParseXMLError::from)?;
         mmd.path = Some(PathBuf::from(path.as_ref()));
         Ok(mmd)
     }
 }
-

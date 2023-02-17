@@ -1,9 +1,4 @@
-use eframe::egui::{
-    self,
-    Widget,
-    Ui,
-    Response,
-};
+use eframe::egui::{self, Response, Ui, Widget};
 use std::sync::mpsc::{SyncSender, TrySendError};
 
 /// The buttons that appear to the right of the mod lists.
@@ -16,7 +11,11 @@ pub struct Button<'a> {
 
 impl std::fmt::Debug for Button<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&format!("Button {{ label: {:?}, hint: {:?} }}", self.label, self.hint_sender.as_ref().map(|h| h.msg)))
+        f.write_str(&format!(
+            "Button {{ label: {:?}, hint: {:?} }}",
+            self.label,
+            self.hint_sender.as_ref().map(|h| h.msg)
+        ))
     }
 }
 
@@ -30,8 +29,7 @@ impl<'a> Button<'a> {
     /// Returns `true` if `None`.
     #[must_use]
     pub fn is_enabled(&self) -> bool {
-        self.is_enabled_fn.as_ref()
-            .map_or(true, |f| f())
+        self.is_enabled_fn.as_ref().map_or(true, |f| f())
     }
 }
 
@@ -48,8 +46,7 @@ impl<'a> Widget for &Button<'a> {
 
         // Doesn't trigger hover when disabled; might have to implement own hover logic if no given workaround?
         if resp.hovered() {
-            self.hint_sender.as_ref()
-                .map(HintSender::try_send);
+            self.hint_sender.as_ref().map(HintSender::try_send);
         }
 
         resp
@@ -102,7 +99,7 @@ impl<'a> ButtonBuilder<'a> {
 
 impl<'a> From<ButtonBuilder<'a>> for Button<'a> {
     fn from(builder: ButtonBuilder<'a>) -> Self {
-         Button {
+        Button {
             label: builder.label,
             action: builder.action,
             hint_sender: builder.hint_sender,
@@ -125,9 +122,12 @@ impl<'a> HintSender<'a> {
     pub fn try_send(&self) {
         match self.tx.try_send(String::from(self.msg)) {
             Ok(_) => {}
-            Err(TrySendError::Full(_)) => { log::warn!("Hint channel full") }
-            Err(TrySendError::Disconnected(_)) => { log::error!("Hint mpsc channel unexpectedly disconnected") }
+            Err(TrySendError::Full(_)) => {
+                log::warn!("Hint channel full")
+            }
+            Err(TrySendError::Disconnected(_)) => {
+                log::error!("Hint mpsc channel unexpectedly disconnected")
+            }
         }
     }
 }
-

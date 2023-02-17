@@ -1,15 +1,12 @@
-use std::{
-    io::Read,
-    sync::atomic::AtomicUsize,
-};
 use once_cell::sync::Lazy;
+use std::{io::Read, sync::atomic::AtomicUsize};
 use thiserror::Error;
 
 pub mod config;
+pub mod paths;
 pub mod traits;
 pub mod ui;
 pub mod vec_ops;
-pub mod paths;
 
 mod vec_mut_accessor;
 pub use vec_mut_accessor::VecMutAccessor;
@@ -55,18 +52,20 @@ pub fn fold_lis<S: AsRef<str>>(items: &[S], indenting: usize) -> String {
     let single_indent = "    ";
     let indent = single_indent.repeat(indenting);
 
-    items.iter()
-        .fold(String::new(), |mut acc, item| {
-            acc.push_str(&format!("{indent}<li>{}</li>\n", item.as_ref()));
-            acc
-        })
+    items.iter().fold(String::new(), |mut acc, item| {
+        acc.push_str(&format!("{indent}<li>{}</li>\n", item.as_ref()));
+        acc
+    })
 }
 
 /// Reads a line from a reader.
 ///
 /// # Errors
 /// If `reader.read(buf)` returns `Err`
-pub fn read_line(reader: &mut impl Read, buf: &mut [u8;1]) -> Result<Option<String>, ReadLineError> {
+pub fn read_line(
+    reader: &mut impl Read,
+    buf: &mut [u8; 1],
+) -> Result<Option<String>, ReadLineError> {
     let mut line: Vec<u8> = Vec::new();
 
     loop {
@@ -121,4 +120,3 @@ pub fn truncate(s: &String, width: f32) -> String {
         s.clone()
     }
 }
-

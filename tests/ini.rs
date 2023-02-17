@@ -50,4 +50,3 @@ fn open_config_ini() {
     }
     assert!(some_lines);
 }
-

@@ -1,17 +1,10 @@
-use eframe::egui::{
-    Widget,
-    Ui,
-    Response,
-};
-use crate::widgets::{
-    Button,
-    ModListing,
-};
+use crate::widgets::{Button, ModListing};
+use eframe::egui::{Response, Ui, Widget};
 use std::{
-    sync::mpsc::{SyncSender, Sender},
+    cell::RefCell,
     path::PathBuf,
     rc::Rc,
-    cell::RefCell,
+    sync::mpsc::{Sender, SyncSender},
 };
 
 /// Wrapper for the [`Vec`] of [`Button`]s that appear to the right of the active mods list.
@@ -30,14 +23,16 @@ impl<'a> ButtonsContainer<'a> {
         args: Option<String>,
     ) -> Self {
         Self(vec![
-             Button::clear(hint_tx.clone(), change_mod_list_tx.clone()),
-             Button::sort(hint_tx.clone()),
-
-             Button::import_list(hint_tx.clone(), change_mod_list_tx),
-             Button::export_list(hint_tx.clone(), writer_thread_tx.clone(), active_mod_listing_ref.clone()),
-
-             Button::save(hint_tx.clone(), writer_thread_tx, active_mod_listing_ref),
-             Button::run(hint_tx.clone(), exe_path, args),
+            Button::clear(hint_tx.clone(), change_mod_list_tx.clone()),
+            Button::sort(hint_tx.clone()),
+            Button::import_list(hint_tx.clone(), change_mod_list_tx),
+            Button::export_list(
+                hint_tx.clone(),
+                writer_thread_tx.clone(),
+                active_mod_listing_ref.clone(),
+            ),
+            Button::save(hint_tx.clone(), writer_thread_tx, active_mod_listing_ref),
+            Button::run(hint_tx.clone(), exe_path, args),
         ])
     }
 }
@@ -48,7 +43,7 @@ impl<'a> Widget for &ButtonsContainer<'a> {
             for btn in &self.0 {
                 ui.add(btn);
             }
-        }).response
+        })
+        .response
     }
 }
-

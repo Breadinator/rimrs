@@ -1,14 +1,7 @@
-use eframe::egui::{
-    Widget,
-    Ui,
-    Response,
-};
+use eframe::egui::{Response, Ui, Widget};
 use std::{
     sync::mpsc::Receiver,
-    time::{
-        SystemTime,
-        Duration,
-    },
+    time::{Duration, SystemTime},
 };
 
 const UPDATE_DURATION: Duration = Duration::from_millis(500); // 0.5s
@@ -66,4 +59,3 @@ impl Widget for &mut HintPanel {
         }
     }
 }
-

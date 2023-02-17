@@ -1,47 +1,36 @@
 #![warn(clippy::pedantic)]
 
 // pub mods
-pub mod panels;
 pub mod helpers;
+pub mod panels;
 pub use helpers::traits;
+pub mod glyphs;
 pub mod serialization;
+pub mod validator_thread;
 pub mod widgets;
 pub mod writer_thread;
-pub mod validator_thread;
-pub mod glyphs;
 
 // mod forward reexports
 mod mods;
 pub use mods::*;
 
 // standalone reexports
-pub use serialization::{
-    rimpy_config::RimPyConfig,
-    mods_config::ModsConfig,
-};
+pub use serialization::{mods_config::ModsConfig, rimpy_config::RimPyConfig};
 
 // local imports
-use panels::panel_using_widget;
-use helpers::AtomicFlag;
-use std::{
-    sync::{
-        Arc,
-        mpsc::{
-            sync_channel,
-            SyncSender,
-        },
-    },
-    rc::Rc,
-};
-use once_cell::sync::Lazy;
 use eframe::{
-    egui::{
-        self,
-        CentralPanel,
-        TopBottomPanel,
+    egui::{self, CentralPanel, TopBottomPanel},
+    App, CreationContext,
+};
+use helpers::AtomicFlag;
+use once_cell::sync::Lazy;
+use panels::panel_using_widget;
+use std::{
+    rc::Rc,
+    sync::{
+        mpsc::{sync_channel, SyncSender},
+        Arc,
     },
-    CreationContext,
-    App,
 };
 
 pub static CHANGED_ACTIVE_MODS: Lazy<AtomicFlag> = Lazy::new(AtomicFlag::new);
@@ -64,7 +53,10 @@ impl<'a> RimRs<'a> {
     /// * If it can't read the initial mod folders
     #[must_use]
     #[allow(unused_variables, clippy::needless_pass_by_value)]
-    pub fn new(cc: &CreationContext<'_>, writer_thread_tx: SyncSender<writer_thread::Message>) -> Self {
+    pub fn new(
+        cc: &CreationContext<'_>,
+        writer_thread_tx: SyncSender<writer_thread::Message>,
+    ) -> Self {
         let (hint_tx, hint_rx) = sync_channel(3);
         let hint_panel = panels::HintPanel::new(hint_rx);
 
@@ -77,13 +69,22 @@ impl<'a> RimRs<'a> {
 
         let cmd_args = rimpy_config.startup_params.clone();
 
-        let mut mods_config_path = rimpy_config.folders.config_folder.clone()
+        let mut mods_config_path = rimpy_config
+            .folders
+            .config_folder
+            .clone()
             .expect("Game config folder not found in RimPy `config.ini`");
         mods_config_path.push("ModsConfig.xml");
-        writer_thread_tx.send(writer_thread::Message::SetDestination(mods_config_path.clone())).expect("Couldn't setup writer thread");
+        writer_thread_tx
+            .send(writer_thread::Message::SetDestination(
+                mods_config_path.clone(),
+            ))
+            .expect("Couldn't setup writer thread");
 
         let mods_config = Arc::from(ModsConfig::try_from(mods_config_path.as_path()).unwrap());
-        writer_thread_tx.send(writer_thread::Message::SetModsConfig(mods_config.clone())).expect("Couldn't setup writer thread");
+        writer_thread_tx
+            .send(writer_thread::Message::SetModsConfig(mods_config.clone()))
+            .expect("Couldn't setup writer thread");
 
         let version = mods_config.version.clone().unwrap_or(String::from("???"));
 
@@ -98,7 +99,13 @@ impl<'a> RimRs<'a> {
             cmd_args,
         );
 
-        Self { rimpy_config, mods_config, paths_panel, hint_panel, mods_panel }
+        Self {
+            rimpy_config,
+            mods_config,
+            paths_panel,
+            hint_panel,
+            mods_panel,
+        }
     }
 
     pub fn update_modlist(&mut self) {
@@ -123,9 +130,10 @@ impl<'a> RimRs<'a> {
 impl<'a> App for RimRs<'a> {
     #[allow(unused_variables)]
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        TopBottomPanel::top("paths_panel").show(ctx, |ui| panel_using_widget(ui, &mut self.paths_panel));
-        TopBottomPanel::bottom("hint_panel").show(ctx, |ui| panel_using_widget(ui, &mut self.hint_panel));
+        TopBottomPanel::top("paths_panel")
+            .show(ctx, |ui| panel_using_widget(ui, &mut self.paths_panel));
+        TopBottomPanel::bottom("hint_panel")
+            .show(ctx, |ui| panel_using_widget(ui, &mut self.hint_panel));
         CentralPanel::default().show(ctx, |ui| panel_using_widget(ui, &mut self.mods_panel));
     }
 }
-

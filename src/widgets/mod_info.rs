@@ -1,32 +1,14 @@
+use crate::{helpers::fetch_inc_id, widgets::PathLabel, ModMetaData};
+use eframe::egui::{widgets::Label, Response, ScrollArea, Ui, Widget};
+use egui_extras::{Column, TableBuilder};
 use std::{
-    sync::{
-        Arc,
-        Mutex,
-        TryLockError,
-        atomic::{
-            AtomicUsize,
-            Ordering,
-        },
-    },
+    cell::RefCell,
     collections::HashMap,
     rc::Rc,
-    cell::RefCell,
-};
-use crate::{
-    ModMetaData,
-    widgets::PathLabel,
-    helpers::fetch_inc_id,
-};
-use eframe::egui::{
-    Widget,
-    Ui,
-    Response,
-    widgets::Label,
-    ScrollArea,
-};
-use egui_extras::{
-    TableBuilder,
-    Column,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc, Mutex, TryLockError,
+    },
 };
 
 /// The info panel to the left of the mods lists that shows more details on a selected mod.
@@ -41,7 +23,10 @@ pub struct ModInfo {
 
 impl ModInfo {
     #[must_use]
-    pub fn new(mmd: Arc<Mutex<HashMap<String, ModMetaData>>>, selected: Rc<RefCell<Option<String>>>) -> Self {
+    pub fn new(
+        mmd: Arc<Mutex<HashMap<String, ModMetaData>>>,
+        selected: Rc<RefCell<Option<String>>>,
+    ) -> Self {
         Self {
             mmd,
             selected,
@@ -97,8 +82,12 @@ impl ModInfo {
                 .column(Column::remainder())
                 .body(|mut body| {
                     body.row(f32::NAN, |mut row| {
-                        row.col(|ui| { ui.add(name_widget); });
-                        row.col(|ui| { ui.add(authors_widget); });
+                        row.col(|ui| {
+                            ui.add(name_widget);
+                        });
+                        row.col(|ui| {
+                            ui.add(authors_widget);
+                        });
                     });
                 });
 
@@ -113,7 +102,8 @@ impl ModInfo {
                         .show(ui, |ui| ui.add(description_widget));
                 });
             }
-        }).response
+        })
+        .response
     }
 }
 
@@ -123,13 +113,25 @@ impl Widget for &mut ModInfo {
         if let Some(sel) = sel.as_deref() {
             let map = self.mmd.try_lock();
             match map.as_ref().map(|map| map.get(sel)) {
-                Ok(Some(mmd)) => return ModInfo::render(ui, sel, mmd, &mut self.last_selected, &mut self.path_lab, &self.id),
+                Ok(Some(mmd)) => {
+                    return ModInfo::render(
+                        ui,
+                        sel,
+                        mmd,
+                        &mut self.last_selected,
+                        &mut self.path_lab,
+                        &self.id,
+                    )
+                }
                 Ok(None) => log::warn!("No ModMetaData found for {sel}"),
-                Err(TryLockError::Poisoned(_)) => log::error!("Couldn't get lock for ModMetaData map: mutex poisoned"),
-                Err(TryLockError::WouldBlock) => log::warn!("Couldn't get lock for ModMetaData map: already taken."),
+                Err(TryLockError::Poisoned(_)) => {
+                    log::error!("Couldn't get lock for ModMetaData map: mutex poisoned")
+                }
+                Err(TryLockError::WouldBlock) => {
+                    log::warn!("Couldn't get lock for ModMetaData map: already taken.")
+                }
             }
         }
-        ui.scope(|_|{}).response
+        ui.scope(|_| {}).response
     }
 }
-

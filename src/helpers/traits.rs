@@ -1,15 +1,7 @@
 use std::{
-    path::{
-        PathBuf,
-        Path,
-    },
     ffi::OsString,
-    sync::{
-        Mutex,
-        MutexGuard,
-        TryLockError,
-        PoisonError,
-    },
+    path::{Path, PathBuf},
+    sync::{Mutex, MutexGuard, PoisonError, TryLockError},
 };
 use thiserror::Error;
 
@@ -62,7 +54,7 @@ pub trait Mover {
 }
 
 #[allow(clippy::missing_errors_doc)]
-pub trait MoverMatcher : Mover {
+pub trait MoverMatcher: Mover {
     type Item;
     fn move_match_up(self, predicate: MoverPredicate<'_, Self::Item>) -> Result<(), Self::Error>;
     fn move_match_down(self, predicate: MoverPredicate<'_, Self::Item>) -> Result<(), Self::Error>;
@@ -85,7 +77,7 @@ impl<T> Mover for &mut Vec<T> {
         if i == 0 || i >= self.len() {
             return Err(Self::Error::IndexOutOfBounds);
         }
-        self.swap(i, i-1);
+        self.swap(i, i - 1);
         Ok(())
     }
 
@@ -95,7 +87,7 @@ impl<T> Mover for &mut Vec<T> {
         if i > self.len() - 2 {
             return Err(Self::Error::IndexOutOfBounds);
         }
-        self.swap(i, i+1);
+        self.swap(i, i + 1);
         Ok(())
     }
 
@@ -107,7 +99,7 @@ impl<T> Mover for &mut Vec<T> {
             return Err(Self::Error::IndexOutOfBounds);
         }
         for j in 0..n {
-            self.move_up(i-j); // shouldn't fail due to the above check
+            self.move_up(i - j); // shouldn't fail due to the above check
         }
         Ok(())
     }
@@ -120,7 +112,7 @@ impl<T> Mover for &mut Vec<T> {
             return Err(Self::Error::IndexOutOfBounds);
         }
         for j in 0..n {
-            self.move_down(i+j); // shouldn't fail due to the above check
+            self.move_down(i + j); // shouldn't fail due to the above check
         }
         Ok(())
     }
@@ -133,12 +125,18 @@ where
     type Item = T;
 
     fn move_match_up(self, predicate: MoverPredicate<'_, Self::Item>) -> Result<(), Self::Error> {
-        let i = self.iter().position(predicate).ok_or(Self::Error::NoMatch)?;
+        let i = self
+            .iter()
+            .position(predicate)
+            .ok_or(Self::Error::NoMatch)?;
         self.move_up(i)
     }
 
     fn move_match_down(self, predicate: MoverPredicate<'_, Self::Item>) -> Result<(), Self::Error> {
-        let i = self.iter().position(predicate).ok_or(Self::Error::NoMatch)?;
+        let i = self
+            .iter()
+            .position(predicate)
+            .ok_or(Self::Error::NoMatch)?;
         self.move_down(i)
     }
 }
@@ -194,4 +192,3 @@ impl<P: AsRef<Path>> PushChained<P> for PathBuf {
         self
     }
 }
-

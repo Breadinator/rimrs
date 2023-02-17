@@ -1,23 +1,21 @@
-use rimrs::serialization::{
-    about::*,
-    mods_config::*,
-};
-use std::{
-    env,
-    fs,
-    path::PathBuf,
-};
+use rimrs::serialization::{about::*, mods_config::*};
+use std::{env, fs, path::PathBuf};
 
 /// Assumes Vanilla Psycasts Expanded installed via steam, and workshop files installed to `D:/` drive.
 #[test]
 fn test_parse_about() {
-    let path = PathBuf::from(r#"D:\Program Files\steam\steamapps\workshop\content\294100\2842502659\About\About.xml"#);
+    let path = PathBuf::from(
+        r#"D:\Program Files\steam\steamapps\workshop\content\294100\2842502659\About\About.xml"#,
+    );
     let file = fs::read(path).unwrap();
     let mmd = parse_about(&file).unwrap();
 
     assert_eq!(mmd.name.unwrap(), String::from("Vanilla Psycasts Expanded"));
     assert!(mmd.description.is_some());
-    assert_eq!(mmd.packageId.unwrap(), String::from("VanillaExpanded.VPsycastsE"));
+    assert_eq!(
+        mmd.packageId.unwrap(),
+        String::from("VanillaExpanded.VPsycastsE")
+    );
     assert_eq!(mmd.author.unwrap(), String::from("erdelf, Oskar Potocki, legodude17, Taranchuk, xrushha, Sarg Bjornson, Sir Van, Reann Shepard"));
 
     assert!(mmd.loadBefore.unwrap().contains("steve.betterquestrewards"));
@@ -76,32 +74,39 @@ fn parse_mods_config_from_bytes() {
         <li>ludeon.rimworld.biotech</li>
     </knownExpansions>
 </ModsConfigData>
-    "#.as_bytes();
+    "#
+    .as_bytes();
     let mods_config = ModsConfig::try_from(bytes).unwrap();
 
     assert_eq!(mods_config.version.unwrap(), "1.4.3613 rev641");
 
     assert_eq!(mods_config.activeMods.len(), 10);
-    assert_eq!(mods_config.activeMods, vec![
-        "brrainz.harmony",
-        "me.samboycoding.betterloading.dev",
-        "ludeon.rimworld",
-        "ludeon.rimworld.royalty",
-        "ludeon.rimworld.ideology",
-        "ludeon.rimworld.biotech",
-        "vanillaexpanded.backgrounds",
-        "unlimitedhugs.hugslib",
-        "brrainz.achtung",
-        "unlimitedhugs.allowtool",
-    ]);
+    assert_eq!(
+        mods_config.activeMods,
+        vec![
+            "brrainz.harmony",
+            "me.samboycoding.betterloading.dev",
+            "ludeon.rimworld",
+            "ludeon.rimworld.royalty",
+            "ludeon.rimworld.ideology",
+            "ludeon.rimworld.biotech",
+            "vanillaexpanded.backgrounds",
+            "unlimitedhugs.hugslib",
+            "brrainz.achtung",
+            "unlimitedhugs.allowtool",
+        ]
+    );
 
     assert_eq!(mods_config.knownExpansions.len(), 4);
-    assert_eq!(mods_config.knownExpansions, vec![
-       "ludeon.rimworld",
-       "ludeon.rimworld.royalty",
-       "ludeon.rimworld.ideology",
-       "ludeon.rimworld.biotech",
-    ]);
+    assert_eq!(
+        mods_config.knownExpansions,
+        vec![
+            "ludeon.rimworld",
+            "ludeon.rimworld.royalty",
+            "ludeon.rimworld.ideology",
+            "ludeon.rimworld.biotech",
+        ]
+    );
 }
 
 #[test]
@@ -121,15 +126,17 @@ fn serialize_mods_config() {
             String::from("unlimitedhugs.allowtool"),
         ],
         knownExpansions: vec![
-           String::from("ludeon.rimworld"),
-           String::from("ludeon.rimworld.royalty"),
-           String::from("ludeon.rimworld.ideology"),
-           String::from("ludeon.rimworld.biotech"),
+            String::from("ludeon.rimworld"),
+            String::from("ludeon.rimworld.royalty"),
+            String::from("ludeon.rimworld.ideology"),
+            String::from("ludeon.rimworld.biotech"),
         ],
     };
     let serialized = String::from(&mods_config);
 
-    assert_eq!(serialized, r#"<?xml version="1.0" encoding="utf-8"?>
+    assert_eq!(
+        serialized,
+        r#"<?xml version="1.0" encoding="utf-8"?>
 <ModsConfigData>
     <version>1.4.3613 rev641</version>
     <activeMods>
@@ -150,12 +157,13 @@ fn serialize_mods_config() {
         <li>ludeon.rimworld.ideology</li>
         <li>ludeon.rimworld.biotech</li>
     </knownExpansions>
-</ModsConfigData>"#);
+</ModsConfigData>"#
+    );
 }
 
 #[test]
 fn deserialize_serialize_mods_config() {
-     let data = r#"<?xml version="1.0" encoding="utf-8"?>
+    let data = r#"<?xml version="1.0" encoding="utf-8"?>
 <ModsConfigData>
     <version>1.4.3613 rev641</version>
     <activeMods>
@@ -178,9 +186,8 @@ fn deserialize_serialize_mods_config() {
     </knownExpansions>
 </ModsConfigData>"#;
 
-     let deserialized = ModsConfig::try_from(data.as_bytes()).unwrap();
-     let reserialized = String::from(&deserialized);
+    let deserialized = ModsConfig::try_from(data.as_bytes()).unwrap();
+    let reserialized = String::from(&deserialized);
 
-     assert_eq!(data, reserialized);
+    assert_eq!(data, reserialized);
 }
-

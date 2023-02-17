@@ -6,4 +6,3 @@ fn get_local_mods_location() {
     println!("{conf:?}");
     assert!(conf.folders.local_mods.is_some());
 }
-

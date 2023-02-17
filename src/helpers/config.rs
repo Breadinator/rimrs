@@ -1,8 +1,8 @@
+use crate::helpers::paths::push_mod_lists_path;
 use std::{
     env::{self, VarError},
     path::PathBuf,
 };
-use crate::helpers::paths::push_mod_lists_path;
 
 /// Gets the `RimPy` config directory.
 /// Its main config file is in `config.ini`, and mod lists are in `ModLists/`
@@ -13,19 +13,18 @@ pub fn get_config_dir() -> Result<PathBuf, VarError> {
     get_config_dir_from_env()
 }
 
-#[cfg(target_os="windows")]
+#[cfg(target_os = "windows")]
 fn get_config_dir_from_env() -> Result<PathBuf, VarError> {
-    env::var("APPDATA")
-        .map(|path_raw| {
-            let mut path = PathBuf::from(path_raw);
-            path.pop();
-            path.push("LocalLow");
-            path.push("RimPy Mod Manager");
-            path
-        })
+    env::var("APPDATA").map(|path_raw| {
+        let mut path = PathBuf::from(path_raw);
+        path.pop();
+        path.push("LocalLow");
+        path.push("RimPy Mod Manager");
+        path
+    })
 }
 
-#[cfg(not(target_os="windows"))]
+#[cfg(not(target_os = "windows"))]
 fn get_config_dir_from_env() -> Result<PathBuf, VarError> {
     log::error!("Unimplemented for operating systems other than Windows.");
     Err(VarError::NotPresent)
@@ -46,7 +45,5 @@ pub fn get_config_ini_path() -> Result<PathBuf, VarError> {
 /// # Errors
 /// See [`get_config_dir`]
 pub fn get_mod_list_path() -> Result<PathBuf, VarError> {
-    get_config_dir()
-        .map(push_mod_lists_path)
+    get_config_dir().map(push_mod_lists_path)
 }
-

@@ -1,9 +1,5 @@
-use std::{
-    path::Path,
-    fs::File,
-    io::Read,
-};
-use crate::helpers::{read_line, traits::LogIfErr, config::get_config_ini_path};
+use crate::helpers::{config::get_config_ini_path, read_line, traits::LogIfErr};
+use std::{fs::File, io::Read, path::Path};
 use thiserror::Error;
 
 pub struct INIReader<'a> {
@@ -55,7 +51,8 @@ impl Iterator for INIReader<'_> {
             // Blank line or comment
             if line.len() < 3
                 || !line.contains(|c: char| !c.is_whitespace())
-                || line.starts_with(';') {
+                || line.starts_with(';')
+            {
                 continue;
             }
 
@@ -72,20 +69,25 @@ impl Iterator for INIReader<'_> {
 
             // too few parts
             if parts.len() < 2 {
-                return Some(Err(INIError::InvalidData(String::from("Expected `=` sign when parsing line of INI file, found none."))))
+                return Some(Err(INIError::InvalidData(String::from(
+                    "Expected `=` sign when parsing line of INI file, found none.",
+                ))));
             }
 
             let section = self.section.clone();
             let key = String::from(parts[0].trim());
             let value = String::from(parts[1..].join("=").trim()); // probs very unnecessary heap allocation here lol
 
-            return Some(Ok(INIKeyValuePair { section, key, value }))
+            return Some(Ok(INIKeyValuePair {
+                section,
+                key,
+                value,
+            }));
         }
 
         None
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct INIKeyValuePair {
@@ -104,4 +106,3 @@ pub enum INIError {
     #[error("couldn't read env: {0}")]
     VarError(#[from] std::env::VarError),
 }
-

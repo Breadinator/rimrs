@@ -1,29 +1,15 @@
 use crate::{
-    ModsConfig,
-    helpers::{
-        paths::path_to_str,
-        config::get_mod_list_path,
-    },
-    traits::{
-        LogIfErr,
-        PushChained,
-    },
-    widgets::{
-        Button,
-        ModListing,
-    },
-    CHANGED_ACTIVE_MODS,
-    writer_thread,
+    helpers::{config::get_mod_list_path, paths::path_to_str},
+    traits::{LogIfErr, PushChained},
+    widgets::{Button, ModListing},
+    writer_thread, ModsConfig, CHANGED_ACTIVE_MODS,
 };
 use std::{
-    sync::mpsc::{
-        SyncSender,
-        Sender,
-    },
-    process::Command,
-    path::PathBuf,
-    rc::Rc,
     cell::RefCell,
+    path::PathBuf,
+    process::Command,
+    rc::Rc,
+    sync::mpsc::{Sender, SyncSender},
 };
 
 impl<'a> Button<'a> {
@@ -31,12 +17,14 @@ impl<'a> Button<'a> {
     #[must_use]
     pub fn clear(hint_tx: SyncSender<String>, change_mod_list_tx: Sender<Vec<String>>) -> Self {
         let action = Box::new(move || {
-            change_mod_list_tx.send(vec![
-                String::from("ludeon.rimworld"),
-                String::from("ludeon.rimworld.royalty"),
-                String::from("ludeon.rimworld.ideology"),
-                String::from("ludeon.rimworld.biotech"),
-            ]).log_if_err();
+            change_mod_list_tx
+                .send(vec![
+                    String::from("ludeon.rimworld"),
+                    String::from("ludeon.rimworld.royalty"),
+                    String::from("ludeon.rimworld.ideology"),
+                    String::from("ludeon.rimworld.biotech"),
+                ])
+                .log_if_err();
         }) as Box<dyn Fn() + 'a>;
         let hint = "Remove all mods, except Core and DLCs";
 
@@ -60,10 +48,15 @@ impl<'a> Button<'a> {
 
     /// Generates the [`Button`] that saves the active mod list to disk.
     #[must_use]
-    pub fn save(hint_tx: SyncSender<String>, writer_thread_tx: SyncSender<writer_thread::Message>, active_mod_listing_ref: Rc<RefCell<ModListing<'a>>>) -> Self {
+    pub fn save(
+        hint_tx: SyncSender<String>,
+        writer_thread_tx: SyncSender<writer_thread::Message>,
+        active_mod_listing_ref: Rc<RefCell<ModListing<'a>>>,
+    ) -> Self {
         let action = Box::new(move || {
             let active_mods = Vec::from(&active_mod_listing_ref.borrow().clone());
-            writer_thread_tx.try_send(writer_thread::Message::SetActiveMods(active_mods))
+            writer_thread_tx
+                .try_send(writer_thread::Message::SetActiveMods(active_mods))
                 .and_then(|_| writer_thread_tx.try_send(writer_thread::Message::Save))
                 .log_if_err();
         }) as Box<dyn Fn() + 'a>;
@@ -85,8 +78,7 @@ impl<'a> Button<'a> {
             if let Some(args) = args.as_ref() {
                 cmd.arg(args); // idk if this'll work with more complex args than I use, TODO check
             }
-            cmd.spawn()
-                .log_if_err();
+            cmd.spawn().log_if_err();
         }) as Box<dyn Fn() + 'a>;
         let hint = "Run the game";
         let is_enabled = Box::new(|| !CHANGED_ACTIVE_MODS.check()) as Box<dyn Fn() -> bool>;
@@ -99,19 +91,19 @@ impl<'a> Button<'a> {
     }
 
     #[must_use]
-    pub fn import_list(hint_tx: SyncSender<String>, change_mod_list_tx: Sender<Vec<String>>) -> Self {
+    pub fn import_list(
+        hint_tx: SyncSender<String>,
+        change_mod_list_tx: Sender<Vec<String>>,
+    ) -> Self {
         let hint = "Imports mod list from mod list file";
         let action = Box::new(move || {
-            let path = get_mod_list_path().log_if_err()
-                .map(|p| p.push_chained("")); // need to push empty so it opens in the dir rather than in its parent with the dir name as the input
-            let path = path.as_ref()
-                .and_then(path_to_str)
-                .unwrap_or_default();
-            if let Some(parsed) = tinyfiledialogs::open_file_dialog("Select mod list", path, Some((&["*.xml"], "")))
-                .and_then(|p| ModsConfig::try_from(PathBuf::from(p).as_path()).log_if_err())
+            let path = get_mod_list_path().log_if_err().map(|p| p.push_chained("")); // need to push empty so it opens in the dir rather than in its parent with the dir name as the input
+            let path = path.as_ref().and_then(path_to_str).unwrap_or_default();
+            if let Some(parsed) =
+                tinyfiledialogs::open_file_dialog("Select mod list", path, Some((&["*.xml"], "")))
+                    .and_then(|p| ModsConfig::try_from(PathBuf::from(p).as_path()).log_if_err())
             {
-                change_mod_list_tx.send(parsed.activeMods)
-                    .log_if_err();
+                change_mod_list_tx.send(parsed.activeMods).log_if_err();
             }
         }) as Box<dyn Fn() + 'a>;
 
@@ -122,23 +114,39 @@ impl<'a> Button<'a> {
     }
 
     #[must_use]
-    pub fn export_list(hint_tx: SyncSender<String>, writer_thread_tx: SyncSender<writer_thread::Message>, active_mod_listing_ref: Rc<RefCell<ModListing<'a>>>) -> Self {
+    pub fn export_list(
+        hint_tx: SyncSender<String>,
+        writer_thread_tx: SyncSender<writer_thread::Message>,
+        active_mod_listing_ref: Rc<RefCell<ModListing<'a>>>,
+    ) -> Self {
         let hint = "Exports mod list to file";
         let action = Box::new(move || {
-            let mods = active_mod_listing_ref.borrow().items.iter()
-                .map(|item| &item.package_id)
-                .map(Clone::clone)
+            let mods = active_mod_listing_ref
+                .borrow()
+                .items
+                .iter()
+                .map(|item| item.package_id.clone())
                 .collect();
 
-            let mod_list_path = get_mod_list_path().log_if_err()
-                .map(|p| p.push_chained(""));
-            let mod_list_path = mod_list_path.as_ref()
+            let mod_list_path = get_mod_list_path().log_if_err().map(|p| p.push_chained(""));
+            let mod_list_path = mod_list_path
+                .as_ref()
                 .and_then(path_to_str)
                 .unwrap_or_default();
 
-            tinyfiledialogs::save_file_dialog_with_filter("Save file list", mod_list_path, &["*.xml"], "")
-                .map(|save_path| writer_thread_tx.try_send(writer_thread::Message::WriteTo(PathBuf::from(save_path), mods)))
-                .map(LogIfErr::log_if_err);
+            tinyfiledialogs::save_file_dialog_with_filter(
+                "Save file list",
+                mod_list_path,
+                &["*.xml"],
+                "",
+            )
+            .map(|save_path| {
+                writer_thread_tx.try_send(writer_thread::Message::WriteTo(
+                    PathBuf::from(save_path),
+                    mods,
+                ))
+            })
+            .map(LogIfErr::log_if_err);
         }) as Box<dyn Fn() + 'a>;
 
         Self::builder("Export list")
@@ -147,4 +155,3 @@ impl<'a> Button<'a> {
             .build()
     }
 }
-

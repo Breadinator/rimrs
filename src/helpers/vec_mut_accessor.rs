@@ -1,14 +1,5 @@
-use std::sync::{
-    Arc,
-    Mutex,
-};
-use crate::traits::{
-    Mover,
-    MoverMatcher,
-    MoverPredicate,
-    VecMoveError,
-    LockIgnorePoisoned,
-};
+use crate::traits::{LockIgnorePoisoned, Mover, MoverMatcher, MoverPredicate, VecMoveError};
+use std::sync::{Arc, Mutex};
 
 pub enum VecMutAccessor<'v, T> {
     ExclRef(&'v mut Vec<T>),
@@ -65,7 +56,10 @@ impl<'v, T> VecMutAccessor<'v, T> {
 
     /// See [`Vec::try_reserve`]
     #[allow(clippy::missing_errors_doc)]
-    pub fn try_reserve(&mut self, additional: usize) -> Result<(), std::collections::TryReserveError> {
+    pub fn try_reserve(
+        &mut self,
+        additional: usize,
+    ) -> Result<(), std::collections::TryReserveError> {
         match self {
             Self::ExclRef(vec) => vec.try_reserve(additional),
             Self::ArcMutex(armu) => armu.lock_ignore_poisoned().try_reserve(additional),
@@ -88,8 +82,8 @@ impl<'v, T> Mover for &mut VecMutAccessor<'v, T> {
             return Err(Self::Error::IndexOutOfBounds);
         }
         match self {
-            VecMutAccessor::ExclRef(vec) => vec.swap(i, i-1),
-            VecMutAccessor::ArcMutex(armu) => armu.lock_ignore_poisoned().swap(i, i-1),
+            VecMutAccessor::ExclRef(vec) => vec.swap(i, i - 1),
+            VecMutAccessor::ArcMutex(armu) => armu.lock_ignore_poisoned().swap(i, i - 1),
         }
         Ok(())
     }
@@ -100,8 +94,8 @@ impl<'v, T> Mover for &mut VecMutAccessor<'v, T> {
             return Err(Self::Error::IndexOutOfBounds);
         }
         match self {
-            VecMutAccessor::ExclRef(vec) => vec.swap(i, i+1),
-            VecMutAccessor::ArcMutex(armu) => armu.lock_ignore_poisoned().swap(i, i+1),
+            VecMutAccessor::ExclRef(vec) => vec.swap(i, i + 1),
+            VecMutAccessor::ArcMutex(armu) => armu.lock_ignore_poisoned().swap(i, i + 1),
         }
         Ok(())
     }
@@ -111,7 +105,7 @@ impl<'v, T> Mover for &mut VecMutAccessor<'v, T> {
             return Err(Self::Error::IndexOutOfBounds);
         }
         for j in 0..n {
-            self.move_down(i+j).ok(); // shouldn't fail due to the above check
+            self.move_down(i + j).ok(); // shouldn't fail due to the above check
         }
         Ok(())
     }
@@ -121,7 +115,7 @@ impl<'v, T> Mover for &mut VecMutAccessor<'v, T> {
             return Err(Self::Error::IndexOutOfBounds);
         }
         for j in 0..n {
-            self.move_down(i+j).ok(); // shouldn't fail due to the above check
+            self.move_down(i + j).ok(); // shouldn't fail due to the above check
         }
         Ok(())
     }
@@ -143,4 +137,3 @@ where
         self.move_down(i)
     }
 }
-

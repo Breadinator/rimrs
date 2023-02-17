@@ -1,10 +1,6 @@
-use std::path::PathBuf;
 use crate::helpers::traits::LogIfErr;
-use eframe::egui::{
-    Widget,
-    Ui,
-    Response,
-};
+use eframe::egui::{Response, Ui, Widget};
+use std::path::PathBuf;
 
 /// Wrapper for a path.
 /// Basically just shows a [`eframe::egui::Button`] that opens the path when clicked.
@@ -28,11 +24,9 @@ impl Widget for &PathLabel {
         let lab = ui.button(path); // kinda ugly but at least it works lol
 
         if lab.clicked() && !path.is_empty() {
-            open::that(self.0.clone())
-                .log_if_err();
+            open::that(self.0.clone()).log_if_err();
         }
 
         lab
     }
 }
-

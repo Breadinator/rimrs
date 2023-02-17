@@ -1,9 +1,6 @@
-use crate::helpers::{strip_bom, fold_lis};
+use crate::helpers::{fold_lis, strip_bom};
 use std::path::Path;
-use xml::reader::{
-    EventReader,
-    XmlEvent,
-};
+use xml::reader::{EventReader, XmlEvent};
 
 /// Represents the file `ModsConfig.xml` in rimworld's config directory,
 /// `.../AppData/LocalLow/Ludeon Studios/RimWorld by Ludeon Studios/Config/`.
@@ -61,12 +58,18 @@ impl TryFrom<&[u8]> for ModsConfig {
                     }
                 }
                 XmlEvent::EndElement { name } => {
-                    if name.local_name == "version" || name.local_name == "activeMods" || name.local_name == "knownExpansions" {
+                    if name.local_name == "version"
+                        || name.local_name == "activeMods"
+                        || name.local_name == "knownExpansions"
+                    {
                         section = None;
                     }
                 }
                 XmlEvent::Characters(text) => {
-                    match section.as_ref().expect("Unexpected Characters when parsing `ModsConfig`") {
+                    match section
+                        .as_ref()
+                        .expect("Unexpected Characters when parsing `ModsConfig`")
+                    {
                         Section::Version => mods_config.version = Some(text),
                         Section::ActiveMods => mods_config.activeMods.push(text),
                         Section::KnownExpansions => mods_config.knownExpansions.push(text),
@@ -90,14 +93,14 @@ impl TryFrom<&Path> for ModsConfig {
     /// * [`std::io::Error`]: failed to read the file at the given path
     fn try_from(path: &Path) -> Result<Self, Self::Error> {
         let bytes = std::fs::read(path)?;
-        Self::try_from(bytes.as_slice())
-            .map_err(Into::into)
+        Self::try_from(bytes.as_slice()).map_err(Into::into)
     }
 }
 
 impl From<&ModsConfig> for String {
     fn from(mods_config: &ModsConfig) -> Self {
-        let mut out = String::from("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<ModsConfigData>\n");
+        let mut out =
+            String::from("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<ModsConfigData>\n");
 
         if let Some(version) = &mods_config.version {
             out.push_str(&format!("    <version>{version}</version>\n"));
@@ -124,4 +127,3 @@ impl From<&ModsConfig> for Vec<u8> {
         String::from(mods_config).into_bytes()
     }
 }
-

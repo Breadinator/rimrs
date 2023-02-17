@@ -132,4 +132,3 @@ fn move_match_down() -> Result {
     assert_eq!(v, vec!["a", "c", "b"]);
     Ok(())
 }
-

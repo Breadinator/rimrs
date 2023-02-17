@@ -11,7 +11,6 @@ pub use mods::*;
 mod hint;
 pub use hint::*;
 
-pub fn panel_using_widget (ui: &mut Ui, widget: impl Widget) {
+pub fn panel_using_widget(ui: &mut Ui, widget: impl Widget) {
     ui.add(widget);
 }
-

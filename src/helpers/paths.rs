@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use crate::traits::PushChained;
+use std::path::PathBuf;
 
 const MODS_CONFIG_FILE_NAME: &str = "ModsConfig.xml";
 const MOD_LIST_DIR_NAME: &str = "ModLists";
@@ -17,7 +17,5 @@ pub fn push_mod_lists_path(path: PathBuf) -> PathBuf {
 #[allow(clippy::ptr_arg)]
 #[must_use]
 pub fn path_to_str(path: &PathBuf) -> Option<&str> {
-    path.as_os_str()
-        .to_str()
+    path.as_os_str().to_str()
 }
-

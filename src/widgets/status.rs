@@ -1,7 +1,7 @@
-use std::sync::mpsc::{Receiver, SyncSender, self};
-use crate::{mods::ModListValidationResult, validator_thread, traits::LogIfErr};
-use eframe::egui::{Widget, Response, Ui};
-use egui_extras::{TableBuilder, Column};
+use crate::{mods::ModListValidationResult, traits::LogIfErr, validator_thread};
+use eframe::egui::{Response, Ui, Widget};
+use egui_extras::{Column, TableBuilder};
+use std::sync::mpsc::{self, Receiver, SyncSender};
 
 pub struct Status {
     latest: Option<ModListValidationResult>,
@@ -44,8 +44,12 @@ impl Status {
             .column(Column::remainder())
             .body(|mut body| {
                 body.row(h, |mut row| {
-                    row.col(|ui| { ui.label(format!("Warnings: {}", res.warnings().map_or(0, Vec::len))); });
-                    row.col(|ui| { ui.label(format!("Errors: {}", res.errors().map_or(0, Vec::len))); });
+                    row.col(|ui| {
+                        ui.label(format!("Warnings: {}", res.warnings().map_or(0, Vec::len)));
+                    });
+                    row.col(|ui| {
+                        ui.label(format!("Errors: {}", res.errors().map_or(0, Vec::len)));
+                    });
                 });
             });
     }
@@ -59,7 +63,7 @@ impl Widget for &mut Status {
             if let Some(res) = self.latest.as_ref() {
                 Status::display(ui, res);
             }
-        }).response
+        })
+        .response
     }
 }
-

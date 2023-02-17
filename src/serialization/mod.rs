@@ -17,4 +17,3 @@ pub enum ParseXMLError {
     #[error("invalid XML: {0}")]
     XMLError(#[from] xml::reader::Error),
 }
-

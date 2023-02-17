@@ -1,9 +1,6 @@
-use rimrs::*;
-use eframe::{
-    NativeOptions,
-    run_native
-};
 use dotenv::dotenv;
+use eframe::{run_native, NativeOptions};
+use rimrs::*;
 use std::sync::mpsc::sync_channel;
 
 fn main() {
@@ -19,9 +16,12 @@ fn main() {
         ..Default::default()
     };
     let writer_tx_for_app = writer_tx.clone();
-    run_native("RimRs", opts, Box::new(move |cc| Box::new(RimRs::new(cc, writer_tx_for_app))));
+    run_native(
+        "RimRs",
+        opts,
+        Box::new(move |cc| Box::new(RimRs::new(cc, writer_tx_for_app))),
+    );
 
     writer_tx.send(writer_thread::Message::Stop).unwrap();
     writer_handle.join().unwrap();
 }
-

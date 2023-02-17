@@ -1,30 +1,17 @@
 use crate::{
-    ModMetaData,
-    traits::{
-        LogIfErr,
-        TableRower,
-        LockIgnorePoisoned,
-    },
-    helpers::vec_ops::MultiVecOp,
     glyphs,
+    helpers::vec_ops::MultiVecOp,
+    traits::{LockIgnorePoisoned, LogIfErr, TableRower},
+    ModMetaData,
 };
+use eframe::egui::{Response, SelectableLabel, Ui, Widget};
+use egui_extras::TableRow;
 use std::{
-    sync::{
-        Arc,
-        Mutex,
-        mpsc::Sender,
-    },
-    rc::Rc,
     cell::RefCell,
     collections::HashMap,
+    rc::Rc,
+    sync::{mpsc::Sender, Arc, Mutex},
 };
-use eframe::egui::{
-    Widget,
-    SelectableLabel,
-    Ui,
-    Response,
-};
-use egui_extras::TableRow;
 
 /// A single mod. Shows its display name and buttons to reorder it.
 ///
@@ -54,32 +41,43 @@ impl<'a> ModListingItem<'a> {
     }
 
     fn get_display_name(&self) -> String {
-        self.mod_meta_data.as_ref()
-            .map(|mmd| mmd.lock_ignore_poisoned()).as_ref()
+        self.mod_meta_data
+            .as_ref()
+            .map(|mmd| mmd.lock_ignore_poisoned())
+            .as_ref()
             .and_then(|mmd| mmd.get(&self.package_id))
             .and_then(|m| m.name.clone())
             .unwrap_or_else(|| self.package_id.clone())
     }
 
-    fn pid_matches_predicate(pid: String) -> Box<dyn for<'b> Fn(&'b ModListingItem<'_>) -> bool + 'a> {
+    fn pid_matches_predicate(
+        pid: String,
+    ) -> Box<dyn for<'b> Fn(&'b ModListingItem<'_>) -> bool + 'a> {
         Box::new(move |item: &ModListingItem| item.package_id == pid)
     }
 
     fn toggle_activated(&self) {
         let pid = self.package_id.clone();
-        self.tx.send(MultiVecOp::Swap(ModListingItem::pid_matches_predicate(pid)))
+        self.tx
+            .send(MultiVecOp::Swap(ModListingItem::pid_matches_predicate(pid)))
             .log_if_err();
     }
 
     fn move_up(&self) {
         let pid = self.package_id.clone();
-        self.tx.send(MultiVecOp::MoveUp(Box::new(move |item| item.package_id == pid)))
+        self.tx
+            .send(MultiVecOp::MoveUp(Box::new(move |item| {
+                item.package_id == pid
+            })))
             .log_if_err();
     }
 
     fn move_down(&self) {
         let pid = self.package_id.clone();
-        self.tx.send(MultiVecOp::MoveDown(Box::new(move |item| item.package_id == pid)))
+        self.tx
+            .send(MultiVecOp::MoveDown(Box::new(move |item| {
+                item.package_id == pid
+            })))
             .log_if_err();
     }
 }
@@ -95,7 +93,8 @@ impl<'a> Widget for &ModListingItem<'a> {
                 .column(egui_extras::Column::exact(BUTTON_WIDTH))
                 .column(egui_extras::Column::remainder())
                 .body(|mut body| body.row(ROW_HEIGHT, |r| self.table_row(r)));
-        }).response
+        })
+        .response
     }
 }
 
@@ -138,4 +137,3 @@ impl TableRower for &ModListingItem<'_> {
         });
     }
 }
-

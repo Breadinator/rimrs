@@ -1,29 +1,15 @@
 use crate::{
-    ModMetaData,
-    widgets::ModListingItem,
+    helpers::{fetch_inc_id, vec_ops::MultiVecOp},
     traits::TableRower,
-    helpers::{
-        fetch_inc_id,
-        vec_ops::MultiVecOp,
-    },
-    ModList,
+    widgets::ModListingItem,
+    ModList, ModMetaData,
 };
+use eframe::egui::{Align, Layout, Response, Ui, Widget};
 use std::{
-    collections::HashMap,
-    sync::{
-        Arc,
-        Mutex,
-        mpsc::Sender,
-    },
-    rc::Rc,
     cell::RefCell,
-};
-use eframe::egui::{
-    Widget,
-    Ui,
-    Response,
-    Layout,
-    Align,
+    collections::HashMap,
+    rc::Rc,
+    sync::{mpsc::Sender, Arc, Mutex},
 };
 
 /// A single list of mods.
@@ -45,7 +31,8 @@ impl<'a> ModListing<'a> {
         tx: Sender<MultiVecOp<'a, ModListingItem<'a>>>,
     ) -> Self {
         let id = format!("modlisting{}", fetch_inc_id());
-        let items = mods.into_iter()
+        let items = mods
+            .into_iter()
             .map(|m| ModListingItem::new(m, mod_meta_data.clone(), selected.clone(), tx.clone()))
             .collect();
 
@@ -59,7 +46,8 @@ impl<'a> ModListing<'a> {
         selected: &Rc<RefCell<Option<String>>>,
         direct_vecop_tx: &Sender<MultiVecOp<'a, ModListingItem<'a>>>,
     ) -> (Self, Self) {
-        let inactive_pids = mod_list.package_ids()
+        let inactive_pids = mod_list
+            .package_ids()
             .map(|pids| {
                 pids.into_iter()
                     .filter(|pid| !active_pids.contains(pid))
@@ -67,8 +55,20 @@ impl<'a> ModListing<'a> {
             })
             .unwrap_or_default();
 
-        let active = Self::new(active_pids, &mod_list.mods, selected, Some(String::from("Active")), direct_vecop_tx.clone());
-        let inactive = Self::new(inactive_pids, &mod_list.mods, selected, Some(String::from("Inactive")), direct_vecop_tx.clone());
+        let active = Self::new(
+            active_pids,
+            &mod_list.mods,
+            selected,
+            Some(String::from("Active")),
+            direct_vecop_tx.clone(),
+        );
+        let inactive = Self::new(
+            inactive_pids,
+            &mod_list.mods,
+            selected,
+            Some(String::from("Inactive")),
+            direct_vecop_tx.clone(),
+        );
 
         (active, inactive)
     }
@@ -93,7 +93,8 @@ impl<'a> ModListing<'a> {
         selected: &Rc<RefCell<Option<String>>>,
         tx: &Sender<MultiVecOp<'a, ModListingItem<'a>>>,
     ) -> Self {
-        let items = package_ids.into_iter()
+        let items = package_ids
+            .into_iter()
             .map(|m| ModListingItem::new(m, mod_meta_data.clone(), selected.clone(), tx.clone()))
             .collect();
         self.with_items(items)
@@ -115,16 +116,22 @@ impl Widget for &ModListing<'_> {
                 .column(egui_extras::Column::exact(BUTTON_WIDTH))
                 .column(egui_extras::Column::remainder())
                 .cell_layout(Layout::left_to_right(Align::Min).with_main_wrap(false))
-                .body(|body| body.rows(ROW_HEIGHT, self.items.len(), |i, row| self.items[i].table_row(row)));
-        }).response
+                .body(|body| {
+                    body.rows(ROW_HEIGHT, self.items.len(), |i, row| {
+                        self.items[i].table_row(row)
+                    })
+                });
+        })
+        .response
     }
 }
 
 impl From<&ModListing<'_>> for Vec<String> {
     fn from(mod_listing: &ModListing<'_>) -> Self {
-        mod_listing.items.iter()
+        mod_listing
+            .items
+            .iter()
             .map(|item| item.package_id.clone())
             .collect()
     }
 }
-
