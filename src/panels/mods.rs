@@ -1,6 +1,7 @@
 use crate::{
     helpers::vec_ops::MultiVecOp,
-    widgets::{ButtonsContainer, ModInfo, ModListing, ModListingItem},
+    validator_thread,
+    widgets::{ButtonsContainer, ModInfo, ModListing, ModListingItem, Status},
     writer_thread, ModList, ModsConfig, RimPyConfig,
 };
 use eframe::egui::{Response, Ui, Widget};
@@ -30,17 +31,20 @@ pub struct ModsPanel<'a> {
     change_mod_list_rx: Receiver<Vec<String>>,
     change_mod_list_tx: Sender<Vec<String>>,
     selected: Rc<RefCell<Option<String>>>,
+    status: Option<Status>,
 }
 
 impl ModsPanel<'_> {
     /// Makes a new mods panel
     #[must_use]
+    #[allow(clippy::too_many_arguments)] // stay mad
     pub fn new(
         rimpy_config: Rc<RimPyConfig>,
         mods_config: Arc<ModsConfig>,
         mods: ModList,
         hint_tx: &SyncSender<String>,
         writer_thread_tx: SyncSender<writer_thread::Message>,
+        validator_thread_tx: Option<SyncSender<validator_thread::Message>>,
         exe_path: PathBuf,
         args: Option<String>,
     ) -> Self {
@@ -67,6 +71,8 @@ impl ModsPanel<'_> {
             args,
         );
 
+        let status = validator_thread_tx.map(Status::new);
+
         Self {
             mods,
             inactive,
@@ -80,6 +86,7 @@ impl ModsPanel<'_> {
             change_mod_list_rx,
             change_mod_list_tx,
             selected,
+            status,
         }
     }
 

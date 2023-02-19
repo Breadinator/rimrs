@@ -95,6 +95,7 @@ impl<'a> RimRs<'a> {
             mod_list,
             &hint_tx,
             writer_thread_tx,
+            None,
             exe_path,
             cmd_args,
         );

@@ -125,10 +125,10 @@ impl Widget for &mut ModInfo {
                 }
                 Ok(None) => log::warn!("No ModMetaData found for {sel}"),
                 Err(TryLockError::Poisoned(_)) => {
-                    log::error!("Couldn't get lock for ModMetaData map: mutex poisoned")
+                    log::error!("Couldn't get lock for ModMetaData map: mutex poisoned");
                 }
                 Err(TryLockError::WouldBlock) => {
-                    log::warn!("Couldn't get lock for ModMetaData map: already taken.")
+                    log::warn!("Couldn't get lock for ModMetaData map: already taken.");
                 }
             }
         }

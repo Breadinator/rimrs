@@ -118,8 +118,8 @@ impl Widget for &ModListing<'_> {
                 .cell_layout(Layout::left_to_right(Align::Min).with_main_wrap(false))
                 .body(|body| {
                     body.rows(ROW_HEIGHT, self.items.len(), |i, row| {
-                        self.items[i].table_row(row)
-                    })
+                        self.items[i].table_row(row);
+                    });
                 });
         })
         .response

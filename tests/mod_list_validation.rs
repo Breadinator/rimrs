@@ -1,4 +1,4 @@
-use rimrs::{helpers::ModListValidator, Dependency, ModList, ModMetaData, ModsConfig, RimPyConfig};
+use rimrs::{Dependency, ModList, ModListValidator, ModMetaData, ModsConfig, RimPyConfig};
 use std::{
     collections::{HashMap, HashSet},
     sync::{Arc, Mutex},

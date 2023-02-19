@@ -3,6 +3,7 @@ use eframe::egui::{Response, Ui, Widget};
 use egui_extras::{Column, TableBuilder};
 use std::sync::mpsc::{self, Receiver, SyncSender};
 
+#[derive(Debug)]
 pub struct Status {
     latest: Option<ModListValidationResult>,
     rx: Receiver<ModListValidationResult>,

@@ -42,7 +42,7 @@ fn writer_thread_fn(rx: Receiver<Message>) {
             ),
             Ok(Message::SetDestination(new_dest)) => destination = Some(new_dest),
             Ok(Message::SetModsConfig(new_mods_config)) => {
-                mods_config = Some((*new_mods_config).clone())
+                mods_config = Some((*new_mods_config).clone());
             }
             Ok(Message::SetActiveMods(new_mods)) => set_active_mods(&mut mods_config, new_mods),
             Ok(Message::SetHintTx(new_hint_tx)) => hint_tx = Some(new_hint_tx),

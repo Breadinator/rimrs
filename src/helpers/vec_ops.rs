@@ -112,7 +112,7 @@ impl<'a, T> VecOp<'a, T> {
         match vec {
             VecMutAccessor::ExclRef(vec) => vec.iter_mut().for_each(operation),
             VecMutAccessor::ArcMutex(armu) => {
-                armu.lock_ignore_poisoned().iter_mut().for_each(operation)
+                armu.lock_ignore_poisoned().iter_mut().for_each(operation);
             }
         }
     }

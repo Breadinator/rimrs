@@ -123,10 +123,10 @@ impl<'a> HintSender<'a> {
         match self.tx.try_send(String::from(self.msg)) {
             Ok(_) => {}
             Err(TrySendError::Full(_)) => {
-                log::warn!("Hint channel full")
+                log::warn!("Hint channel full");
             }
             Err(TrySendError::Disconnected(_)) => {
-                log::error!("Hint mpsc channel unexpectedly disconnected")
+                log::error!("Hint mpsc channel unexpectedly disconnected");
             }
         }
     }

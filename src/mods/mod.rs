@@ -7,6 +7,9 @@ pub use mod_list::*;
 mod validation;
 pub use validation::*;
 
+mod sorting;
+pub use sorting::*;
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 #[allow(non_snake_case)]
 pub struct Dependency {
