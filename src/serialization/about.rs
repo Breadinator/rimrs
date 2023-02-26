@@ -44,6 +44,11 @@ pub fn parse_about(bytes: &[u8]) -> Result<ModMetaData, xml::reader::Error> {
 }
 
 fn add_data_to_mmd(mmd: &mut ModMetaData, xml_path: &[String], text: String, mem: &mut ParsingMem) {
+    fn lc(mut s: String) -> String {
+        s.make_ascii_lowercase();
+        s
+    }
+
     if xml_path.get(0).map(AsRef::as_ref) != Some("ModMetaData") {
         return;
     }
@@ -57,7 +62,7 @@ fn add_data_to_mmd(mmd: &mut ModMetaData, xml_path: &[String], text: String, mem
             mmd.description = Some(text);
         }
         Some("packageId") => {
-            mmd.packageId = Some(text);
+            mmd.packageId = Some(lc(text));
         }
         Some("author") => {
             mmd.author = Some(text);
@@ -68,16 +73,16 @@ fn add_data_to_mmd(mmd: &mut ModMetaData, xml_path: &[String], text: String, mem
 
         // 1 deep lists
         Some("loadAfter") => {
-            mem.loadAfter.insert(text);
+            mem.loadAfter.insert(lc(text));
         }
         Some("forceLoadAfter") => {
-            mem.forceLoadAfter.insert(text);
+            mem.forceLoadAfter.insert(lc(text));
         }
         Some("loadBefore") => {
-            mem.loadBefore.insert(text);
+            mem.loadBefore.insert(lc(text));
         }
         Some("forceLoadBefore") => {
-            mem.forceLoadBefore.insert(text);
+            mem.forceLoadBefore.insert(lc(text));
         }
         Some("supportedVersions") => {
             mem.supportedVersions.insert(text);
@@ -86,12 +91,12 @@ fn add_data_to_mmd(mmd: &mut ModMetaData, xml_path: &[String], text: String, mem
             mem.authors.push(text);
         }
         Some("incompatibleWith") => {
-            mem.incompatibleWith.insert(text);
+            mem.incompatibleWith.insert(lc(text));
         }
 
         // mod dependencies
         Some("modDependencies") => match xml_path.get(3).map(AsRef::as_ref) {
-            Some("packageId") => mem.curr_modDependencies.packageId = Some(text),
+            Some("packageId") => mem.curr_modDependencies.packageId = Some(lc(text)),
             Some("displayName") => mem.curr_modDependencies.displayName = Some(text),
             Some("steamWorkshopUrl") => mem.curr_modDependencies.steamWorkshopUrl = Some(text),
             Some("downloadUrl") => mem.curr_modDependencies.downloadUrl = Some(text),

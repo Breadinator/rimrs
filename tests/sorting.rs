@@ -1,11 +1,14 @@
 use rand::{prelude::SliceRandom, thread_rng};
-use rimrs::{sort, Dependency, ModMetaData, SortError};
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use rimrs::{sort, Dependency, ModList, ModMetaData, ModsConfig, RimPyConfig, SortError};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
 #[test]
 fn empty() {
     let mods: &[String] = &[];
-    let mmd = Rc::new(RefCell::new(HashMap::new()));
+    let mmd = Arc::new(Mutex::new(HashMap::new()));
     let sorted = sort(mods, &mmd);
     assert!(sorted.unwrap().is_empty());
 }
@@ -26,7 +29,7 @@ fn no_relations() {
     mmd.insert(String::from("b"), ModMetaData::default());
     mmd.insert(String::from("c"), ModMetaData::default());
     mmd.insert(String::from("d"), ModMetaData::default());
-    let mmd = Rc::new(RefCell::new(mmd));
+    let mmd = Arc::new(Mutex::new(mmd));
 
     let sorted = sort(&mods, &mmd);
     assert_eq!(
@@ -94,7 +97,7 @@ fn basic() {
             ..Default::default()
         },
     );
-    let mmd = Rc::new(RefCell::new(mmd));
+    let mmd = Arc::new(Mutex::new(mmd));
 
     let sorted = sort(&mods, &mmd);
     assert_eq!(
@@ -134,8 +137,28 @@ fn cyclic() {
             ..Default::default()
         },
     );
-    let mmd = Rc::new(RefCell::new(mmd));
+    let mmd = Arc::new(Mutex::new(mmd));
 
     let sorted = sort(&mods, &mmd);
-    assert_eq!(sorted.unwrap_err(), SortError::CyclicError);
+    assert_eq!(sorted, Err(SortError::CyclicError));
+}
+
+/// `cargo test from_active --test sorting -- --nocapture`
+#[test]
+fn from_active() {
+    let rimpy_config = RimPyConfig::from_file().unwrap();
+    let mod_list = ModList::try_from(&rimpy_config).unwrap();
+
+    let mut mods_config_path = rimpy_config
+        .folders
+        .config_folder
+        .expect("Game config folder not found in RimPy `config.ini`");
+    mods_config_path.push("ModsConfig.xml");
+    let mods_config = Arc::from(ModsConfig::try_from(mods_config_path.as_path()).unwrap());
+
+    let mods = &mods_config.activeMods;
+
+    let sorted = sort(mods, &mod_list.mods);
+
+    println!("{:?}", sorted.unwrap());
 }

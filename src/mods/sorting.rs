@@ -1,9 +1,8 @@
-use crate::ModMetaData;
+use crate::{traits::LockIgnorePoisoned, ModMetaData};
 use itertools::Itertools;
 use std::{
-    cell::{Ref, RefCell},
     collections::{HashMap, HashSet},
-    rc::Rc,
+    sync::{Arc, Mutex, MutexGuard},
 };
 use thiserror::Error;
 
@@ -24,12 +23,12 @@ pub enum SortError {
 #[allow(clippy::implicit_hasher, clippy::missing_panics_doc)]
 pub fn sort(
     mods: &[String],
-    mod_metadata: &Rc<RefCell<HashMap<String, ModMetaData>>>,
+    mod_metadata: &Arc<Mutex<HashMap<String, ModMetaData>>>,
 ) -> Result<Vec<String>, SortError> {
     let mut sorted = Vec::from(mods);
     sorted.sort();
 
-    let mmd = mod_metadata.borrow();
+    let mmd = mod_metadata.lock_ignore_poisoned();
     let deps = build_deps(&sorted, &mmd)?;
 
     let mut output: Vec<String> = Vec::with_capacity(mods.len());
@@ -83,7 +82,7 @@ fn visit<'a>(
 
 fn build_deps<'a, 'b>(
     mods: &'a [String],
-    mod_metadata: &'b Ref<HashMap<String, ModMetaData>>,
+    mod_metadata: &'b MutexGuard<HashMap<String, ModMetaData>>,
 ) -> Result<HashMap<&'a String, Vec<&'b String>>, SortError> {
     #[allow(clippy::needless_pass_by_value)]
     fn ext<'c>(md: &mut Vec<&'c String>, m: Vec<&'c String>) {
@@ -115,6 +114,9 @@ fn build_deps<'a, 'b>(
             if let Some(d) = mmd.loadAfter.as_ref() {
                 ext(&mut mod_deps, d.iter().collect());
             }
+            if let Some(d) = mmd.forceLoadAfter.as_ref() {
+                ext(&mut mod_deps, d.iter().collect());
+            }
         } else {
             return Err(SortError::MissingData);
         }
@@ -131,6 +133,11 @@ fn build_deps<'a, 'b>(
 
         if let Some(mmd) = mod_metadata.get(n) {
             if let Some(d) = mmd.loadBefore.as_ref() {
+                if d.contains(m) {
+                    mod_deps.push(mmd.packageId.as_ref().ok_or(SortError::MissingData)?);
+                }
+            }
+            if let Some(d) = mmd.forceLoadBefore.as_ref() {
                 if d.contains(m) {
                     mod_deps.push(mmd.packageId.as_ref().ok_or(SortError::MissingData)?);
                 }
