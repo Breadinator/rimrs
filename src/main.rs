@@ -1,10 +1,12 @@
-use dotenv::dotenv;
 use eframe::{run_native, NativeOptions};
 use rimrs::*;
 use std::sync::mpsc::sync_channel;
 
 fn main() {
-    dotenv().ok();
+    #[cfg(feature = "dotenv")]
+    {
+        dotenv::dotenv().ok();
+    }
     env_logger::init();
 
     let (writer_tx, writer_rx) = sync_channel(3);

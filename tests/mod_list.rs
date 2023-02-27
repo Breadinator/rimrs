@@ -22,8 +22,8 @@ fn load_steam_mods() {
         .clone()
         .unwrap();
     assert!(la.contains("brrainz.harmony"));
-    assert!(la.contains("Mlie.RemoveIndustrialStuff"));
-    assert!(la.contains("Mlie.RemoveSpacerStuff"));
-    assert!(la.contains("Mlie.LordoftheRimsTheThirdAge"));
+    assert!(la.contains("mlie.removeindustrialstuff"));
+    assert!(la.contains("mlie.removespacerstuff"));
+    assert!(la.contains("mlie.lordoftherimsthethirdage"));
     println!("{la:?}");
 }

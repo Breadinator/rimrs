@@ -14,15 +14,15 @@ fn test_parse_about() {
     assert!(mmd.description.is_some());
     assert_eq!(
         mmd.packageId.unwrap(),
-        String::from("VanillaExpanded.VPsycastsE")
+        String::from("vanillaexpanded.vpsycastse")
     );
     assert_eq!(mmd.author.unwrap(), String::from("erdelf, Oskar Potocki, legodude17, Taranchuk, xrushha, Sarg Bjornson, Sir Van, Reann Shepard"));
 
     assert!(mmd.loadBefore.unwrap().contains("steve.betterquestrewards"));
 
     let load_after = mmd.loadAfter.unwrap();
-    assert!(load_after.contains("Ludeon.RimWorld"));
-    assert!(load_after.contains("OskarPotocki.VanillaFactionsExpanded.Core"));
+    assert!(load_after.contains("ludeon.rimworld"));
+    assert!(load_after.contains("oskarpotocki.vanillafactionsexpanded.core"));
 
     let supported_versions = mmd.supportedVersions.unwrap();
     assert!(supported_versions.contains("1.4"));

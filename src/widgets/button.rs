@@ -108,7 +108,9 @@ impl<'a> From<ButtonBuilder<'a>> for Button<'a> {
     }
 }
 
+/// Couples the static message to send as a hint and the `tx` to send it by.
 struct HintSender<'a> {
+    /// An owned [`String`] will be generated from this.
     msg: &'a str,
     tx: SyncSender<String>,
 }
