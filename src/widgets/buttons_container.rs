@@ -1,10 +1,17 @@
-use crate::widgets::{Button, ModListing};
+use crate::{
+    widgets::{Button, ModListing},
+    ModMetaData,
+};
 use eframe::egui::{Response, Ui, Widget};
 use std::{
     cell::RefCell,
+    collections::HashMap,
     path::PathBuf,
     rc::Rc,
-    sync::mpsc::{Sender, SyncSender},
+    sync::{
+        mpsc::{Sender, SyncSender},
+        Arc, Mutex,
+    },
 };
 
 /// Wrapper for the [`Vec`] of [`Button`]s that appear to the right of the active mods list.
@@ -19,12 +26,18 @@ impl<'a> ButtonsContainer<'a> {
         writer_thread_tx: SyncSender<crate::writer_thread::Message>,
         change_mod_list_tx: Sender<Vec<String>>,
         active_mod_listing_ref: Rc<RefCell<ModListing<'a>>>,
+        mod_meta_data: Arc<Mutex<HashMap<String, ModMetaData>>>,
         exe_path: PathBuf,
         args: Option<String>,
     ) -> Self {
         Self(vec![
             Button::clear(hint_tx.clone(), change_mod_list_tx.clone()),
-            Button::sort(hint_tx.clone()),
+            Button::sort(
+                hint_tx.clone(),
+                change_mod_list_tx.clone(),
+                active_mod_listing_ref.clone(),
+                mod_meta_data,
+            ),
             Button::import_list(hint_tx.clone(), change_mod_list_tx),
             Button::export_list(
                 hint_tx.clone(),

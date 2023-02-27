@@ -67,6 +67,7 @@ impl ModsPanel<'_> {
             writer_thread_tx,
             change_mod_list_tx.clone(),
             active.clone(),
+            mods.mods.clone(),
             exe_path,
             args,
         );

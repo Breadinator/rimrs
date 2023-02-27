@@ -2,14 +2,18 @@ use crate::{
     helpers::{config::get_mod_list_path, paths::path_to_str},
     traits::{LogIfErr, PushChained},
     widgets::{Button, ModListing},
-    writer_thread, ModsConfig, CHANGED_ACTIVE_MODS,
+    writer_thread, ModMetaData, ModsConfig, CHANGED_ACTIVE_MODS,
 };
 use std::{
     cell::RefCell,
+    collections::HashMap,
     path::PathBuf,
     process::Command,
     rc::Rc,
-    sync::mpsc::{Sender, SyncSender},
+    sync::{
+        mpsc::{Sender, SyncSender},
+        Arc, Mutex,
+    },
 };
 
 impl<'a> Button<'a> {
@@ -36,8 +40,18 @@ impl<'a> Button<'a> {
 
     /// Generates the [`Button`] that auto-sorts the active mod list.
     #[must_use]
-    pub fn sort(hint_tx: SyncSender<String>) -> Self {
-        let action = Box::new(|| log::debug!("Unimplemented 😇")) as Box<dyn Fn() + 'a>;
+    pub fn sort(
+        hint_tx: SyncSender<String>,
+        change_mod_list_tx: Sender<Vec<String>>,
+        active_mod_listing_ref: Rc<RefCell<ModListing<'a>>>,
+        mod_meta_data: Arc<Mutex<HashMap<String, ModMetaData>>>,
+    ) -> Self {
+        let action = Box::new(move || {
+            let active_mods = Vec::from(&active_mod_listing_ref.borrow().clone());
+            if let Some(sorted) = crate::sort(&active_mods, &mod_meta_data).log_if_err() {
+                change_mod_list_tx.send(sorted).log_if_err();
+            }
+        }) as Box<dyn Fn() + 'a>;
         let hint = "Auto-sort mods";
 
         Self::builder("Sort")
