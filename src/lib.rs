@@ -6,7 +6,6 @@ pub mod panels;
 pub use helpers::traits;
 pub mod glyphs;
 pub mod serialization;
-pub mod validator_thread;
 pub mod widgets;
 pub mod writer_thread;
 
@@ -95,7 +94,6 @@ impl<'a> RimRs<'a> {
             mod_list,
             &hint_tx,
             writer_thread_tx,
-            None,
             exe_path,
             cmd_args,
         );

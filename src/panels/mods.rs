@@ -1,6 +1,5 @@
 use crate::{
     helpers::vec_ops::MultiVecOp,
-    validator_thread,
     widgets::{ButtonsContainer, ModInfo, ModListing, ModListingItem, Status},
     writer_thread, ModList, ModsConfig, RimPyConfig,
 };
@@ -31,7 +30,7 @@ pub struct ModsPanel<'a> {
     change_mod_list_rx: Receiver<Vec<String>>,
     change_mod_list_tx: Sender<Vec<String>>,
     selected: Rc<RefCell<Option<String>>>,
-    status: Option<Status>,
+    status: Status<'a>,
 }
 
 impl ModsPanel<'_> {
@@ -44,7 +43,6 @@ impl ModsPanel<'_> {
         mods: ModList,
         hint_tx: &SyncSender<String>,
         writer_thread_tx: SyncSender<writer_thread::Message>,
-        validator_thread_tx: Option<SyncSender<validator_thread::Message>>,
         exe_path: PathBuf,
         args: Option<String>,
     ) -> Self {
@@ -72,7 +70,7 @@ impl ModsPanel<'_> {
             args,
         );
 
-        let status = validator_thread_tx.map(Status::new);
+        let status = Status::new(active.clone(), mods.mods.clone());
 
         Self {
             mods,
@@ -169,6 +167,8 @@ impl ModsPanel<'_> {
                         });
                     });
                 });
+
+            ui.add(&mut self.status);
         });
 
         scope.response

@@ -1,4 +1,4 @@
-use rimrs::{Dependency, ModList, ModListValidator, ModMetaData, ModsConfig, RimPyConfig};
+use rimrs::{validate, Dependency, ModList, ModMetaData, ModsConfig, RimPyConfig};
 use std::{
     collections::{HashMap, HashSet},
     sync::{Arc, Mutex},
@@ -46,8 +46,7 @@ fn generate_mod_meta_data() -> Arc<Mutex<HashMap<String, ModMetaData>>> {
 macro_rules! validate {
     ($x:expr) => {{
         let mmd = generate_mod_meta_data();
-        let validator = ModListValidator::from(&mmd);
-        validator.validate($x)
+        validate(&mmd, $x)
     }};
 }
 
@@ -133,7 +132,7 @@ fn full_test() {
     let mods_config = ModsConfig::try_from(mods_config_path.as_path()).unwrap();
     let active_mods = &mods_config.activeMods;
 
-    let res = ModListValidator::from(mmd).validate(active_mods);
+    let res = validate(mmd, active_mods);
 
     println!("res: {res:?}");
 }

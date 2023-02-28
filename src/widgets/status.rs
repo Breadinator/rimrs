@@ -1,39 +1,53 @@
-use crate::{mods::ModListValidationResult, traits::LogIfErr, validator_thread};
+use crate::{
+    mods::ModListValidationResult, traits::LogIfErr, validate, widgets::ModListing, ModMetaData,
+};
 use eframe::egui::{Response, Ui, Widget};
 use egui_extras::{Column, TableBuilder};
-use std::sync::mpsc::{self, Receiver, SyncSender};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    rc::Rc,
+    sync::{Arc, Mutex},
+    time::SystemTime,
+};
+
+/// How often should it re-validate.
+///
+/// I wanted it to be `u16` but `Duration::as_millis` returns a u128.
+/// TODO: In future, it'd be better to use an observer pattern of some sort to know when to update.
+pub const UPDATE_FREQUENCY_MS: u128 = 1000;
 
 #[derive(Debug)]
-pub struct Status {
+pub struct Status<'a> {
+    active_mods: Rc<RefCell<ModListing<'a>>>,
+    mmd: Arc<Mutex<HashMap<String, ModMetaData>>>,
     latest: Option<ModListValidationResult>,
-    rx: Receiver<ModListValidationResult>,
-    resp_tx: SyncSender<ModListValidationResult>,
-    tx: SyncSender<validator_thread::Message>,
+    last_updated: SystemTime,
 }
 
-impl Status {
+impl<'a> Status<'a> {
     #[must_use]
-    pub fn new(tx: SyncSender<validator_thread::Message>) -> Self {
-        let (resp_tx, rx) = mpsc::sync_channel::<ModListValidationResult>(3);
-
+    pub fn new(
+        active_mods: Rc<RefCell<ModListing<'a>>>,
+        mmd: Arc<Mutex<HashMap<String, ModMetaData>>>,
+    ) -> Self {
         Self {
+            active_mods,
+            mmd,
             latest: None,
-            rx,
-            resp_tx,
-            tx,
+            last_updated: SystemTime::UNIX_EPOCH,
         }
     }
 
     fn update(&mut self) {
-        // send req
-        let package_ids: Vec<String> = Vec::new(); // todo
-        let msg = validator_thread::Message::Validate(package_ids, self.resp_tx.clone());
-        self.tx.try_send(msg).log_if_err();
-
-        // recv resp
-        while let Ok(res) = self.rx.try_recv() {
-            self.latest = Some(res);
-        }
+        let mods: Vec<_> = self
+            .active_mods
+            .borrow()
+            .items
+            .iter()
+            .map(|item| item.package_id.clone())
+            .collect();
+        self.latest = Some(validate(&self.mmd, &mods));
     }
 
     fn display(ui: &mut Ui, res: &ModListValidationResult) {
@@ -56,9 +70,13 @@ impl Status {
     }
 }
 
-impl Widget for &mut Status {
+impl Widget for &mut Status<'_> {
     fn ui(self, ui: &mut Ui) -> Response {
-        self.update();
+        if let Some(elapsed) = self.last_updated.elapsed().log_if_err() {
+            if elapsed.as_millis() > UPDATE_FREQUENCY_MS {
+                self.update();
+            }
+        }
 
         ui.scope(|ui| {
             if let Some(res) = self.latest.as_ref() {
