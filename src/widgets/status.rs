@@ -8,6 +8,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+pub const STATUS_HEIGHT: f32 = 16.0;
+
 #[derive(Debug)]
 pub struct Status<'a> {
     active_mods: Rc<RefCell<ModListing<'a>>>,
@@ -44,13 +46,11 @@ impl<'a> Status<'a> {
 
     fn display(ui: &mut Ui, res: &ModListValidationResult) {
         let w = ui.available_width() / 2.0;
-        let h = 16.0;
-
         TableBuilder::new(ui)
             .column(Column::exact(w))
             .column(Column::remainder())
             .body(|mut body| {
-                body.row(h, |mut row| {
+                body.row(STATUS_HEIGHT, |mut row| {
                     row.col(|ui| {
                         ui.label(format!("Warnings: {}", res.warnings().map_or(0, Vec::len)));
                     });

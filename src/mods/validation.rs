@@ -23,6 +23,8 @@ pub fn validate(
     mmd: &Arc<Mutex<HashMap<String, ModMetaData>>>,
     mod_list: &[String],
 ) -> ModListValidationResult {
+    log::debug!("Revalidating active mod list...");
+
     let mod_list: Vec<_> = mod_list.iter().map(|pid| pid.to_lowercase()).collect();
 
     let mut loaded_so_far: HashSet<String> = HashSet::new();

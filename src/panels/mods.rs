@@ -1,6 +1,6 @@
 use crate::{
     helpers::vec_ops::MultiVecOp,
-    widgets::{ButtonsContainer, ModInfo, ModListing, ModListingItem, Status},
+    widgets::{ButtonsContainer, ModInfo, ModListing, ModListingItem, Status, STATUS_HEIGHT},
     writer_thread, ModList, ModsConfig, RimPyConfig,
 };
 use eframe::egui::{Response, Ui, Widget};
@@ -171,7 +171,8 @@ impl ModsPanel<'_> {
             let w = ui.available_width() / 10.0;
             let mod_info_width = 4.0 * w;
             let mod_listing_width = 2.5 * w;
-            let h = ui.available_height();
+
+            let h = ui.available_height() - STATUS_HEIGHT;
 
             let active_cloned = self.active.borrow().clone();
 
