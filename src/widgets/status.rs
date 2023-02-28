@@ -15,7 +15,7 @@ use std::{
 ///
 /// I wanted it to be `u16` but `Duration::as_millis` returns a u128.
 /// TODO: In future, it'd be better to use an observer pattern of some sort to know when to update.
-pub const UPDATE_FREQUENCY_MS: u128 = 1000;
+pub const UPDATE_FREQUENCY_MS: u128 = 200;
 
 #[derive(Debug)]
 pub struct Status<'a> {
@@ -48,6 +48,7 @@ impl<'a> Status<'a> {
             .map(|item| item.package_id.clone())
             .collect();
         self.latest = Some(validate(&self.mmd, &mods));
+        self.last_updated = SystemTime::now();
     }
 
     fn display(ui: &mut Ui, res: &ModListValidationResult) {
