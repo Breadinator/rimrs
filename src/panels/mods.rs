@@ -31,6 +31,7 @@ pub struct ModsPanel<'a> {
     change_mod_list_tx: Sender<Vec<String>>,
     selected: Rc<RefCell<Option<String>>>,
     status: Status<'a>,
+    should_update_status: *mut bool,
 }
 
 impl ModsPanel<'_> {
@@ -70,7 +71,8 @@ impl ModsPanel<'_> {
             args,
         );
 
-        let status = Status::new(active.clone(), mods.mods.clone());
+        let should_update_status = Box::into_raw(Box::from(true));
+        let status = Status::new(active.clone(), mods.mods.clone(), should_update_status);
 
         Self {
             mods,
@@ -86,6 +88,7 @@ impl ModsPanel<'_> {
             change_mod_list_tx,
             selected,
             status,
+            should_update_status,
         }
     }
 
@@ -94,8 +97,20 @@ impl ModsPanel<'_> {
         self.change_mod_lists();
     }
 
+    /// Used to update various crate-wide state.
+    fn on_active_modlist_change(&mut self) {
+        crate::CHANGED_ACTIVE_MODS.set();
+
+        // SAFETY: only using this bool on the main thread
+        unsafe {
+            *self.should_update_status = true;
+        }
+    }
+
     fn run_vecops(&mut self) {
         let mut active_guard = self.active.borrow_mut();
+        let mut changed = false;
+
         loop {
             let res = self.direct_vecop_rx.try_recv().map(|msg| {
                 msg.run(
@@ -104,7 +119,7 @@ impl ModsPanel<'_> {
                 )
             });
             match res {
-                Ok(Ok(_)) => crate::CHANGED_ACTIVE_MODS.set(),
+                Ok(Ok(_)) => changed = true,
                 Ok(Err(err)) => log::error!("{err:?}"),
                 Err(TryRecvError::Empty) => break,
                 Err(TryRecvError::Disconnected) => {
@@ -112,10 +127,18 @@ impl ModsPanel<'_> {
                 }
             }
         }
+
+        drop(active_guard);
+
+        if changed {
+            self.on_active_modlist_change();
+        }
     }
 
     fn change_mod_lists(&mut self) {
         let mut active_guard = self.active.borrow_mut();
+        let mut changed = false;
+
         loop {
             match self.change_mod_list_rx.try_recv() {
                 Ok(new_mod_list) => {
@@ -127,13 +150,19 @@ impl ModsPanel<'_> {
                     );
                     *active_guard = active;
                     self.inactive = inactive;
-                    crate::CHANGED_ACTIVE_MODS.set();
+                    changed = true;
                 }
                 Err(TryRecvError::Empty) => break,
                 Err(TryRecvError::Disconnected) => {
                     panic!("mods panel mpsc channel unexpectedly disconnected")
                 }
             }
+        }
+
+        drop(active_guard);
+
+        if changed {
+            self.on_active_modlist_change();
         }
     }
 
@@ -179,5 +208,15 @@ impl Widget for &mut ModsPanel<'_> {
     fn ui(self, ui: &mut Ui) -> Response {
         self.tick();
         self.render(ui)
+    }
+}
+
+impl Drop for ModsPanel<'_> {
+    fn drop(&mut self) {
+        // SAFETY: safe to drop because the only other holder of this pointer
+        // will also be dropped (the Status widget)
+        unsafe {
+            drop(Box::from_raw(self.should_update_status));
+        }
     }
 }

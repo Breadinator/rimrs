@@ -1,6 +1,4 @@
-use crate::{
-    mods::ModListValidationResult, traits::LogIfErr, validate, widgets::ModListing, ModMetaData,
-};
+use crate::{mods::ModListValidationResult, validate, widgets::ModListing, ModMetaData};
 use eframe::egui::{Response, Ui, Widget};
 use egui_extras::{Column, TableBuilder};
 use std::{
@@ -8,21 +6,14 @@ use std::{
     collections::HashMap,
     rc::Rc,
     sync::{Arc, Mutex},
-    time::SystemTime,
 };
-
-/// How often should it re-validate.
-///
-/// I wanted it to be `u16` but `Duration::as_millis` returns a u128.
-/// TODO: In future, it'd be better to use an observer pattern of some sort to know when to update.
-pub const UPDATE_FREQUENCY_MS: u128 = 200;
 
 #[derive(Debug)]
 pub struct Status<'a> {
     active_mods: Rc<RefCell<ModListing<'a>>>,
     mmd: Arc<Mutex<HashMap<String, ModMetaData>>>,
     latest: Option<ModListValidationResult>,
-    last_updated: SystemTime,
+    should_update: *mut bool,
 }
 
 impl<'a> Status<'a> {
@@ -30,12 +21,13 @@ impl<'a> Status<'a> {
     pub fn new(
         active_mods: Rc<RefCell<ModListing<'a>>>,
         mmd: Arc<Mutex<HashMap<String, ModMetaData>>>,
+        should_update: *mut bool,
     ) -> Self {
         Self {
             active_mods,
             mmd,
             latest: None,
-            last_updated: SystemTime::UNIX_EPOCH,
+            should_update,
         }
     }
 
@@ -48,7 +40,6 @@ impl<'a> Status<'a> {
             .map(|item| item.package_id.clone())
             .collect();
         self.latest = Some(validate(&self.mmd, &mods));
-        self.last_updated = SystemTime::now();
     }
 
     fn display(ui: &mut Ui, res: &ModListValidationResult) {
@@ -73,9 +64,11 @@ impl<'a> Status<'a> {
 
 impl Widget for &mut Status<'_> {
     fn ui(self, ui: &mut Ui) -> Response {
-        if let Some(elapsed) = self.last_updated.elapsed().log_if_err() {
-            if elapsed.as_millis() > UPDATE_FREQUENCY_MS {
+        // SAFETY: only using this bool on the main thread (on ModsPanel)
+        unsafe {
+            if *self.should_update {
                 self.update();
+                *self.should_update = false;
             }
         }
 
